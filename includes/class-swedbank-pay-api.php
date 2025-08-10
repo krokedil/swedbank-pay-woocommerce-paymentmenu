@@ -405,27 +405,23 @@ class Swedbank_Pay_Api {
 			case self::TYPE_VERIFICATION:
 				break;
 			case self::TYPE_AUTHORIZATION:
-				$message = sprintf( 'Payment has been authorized. Transaction: %s', $transaction_id );
+				// translators: 1: transaction ID.
+				$message = sprintf( __( 'Payment has been authorized. Transaction: %s', 'swedbank-pay-woocommerce-checkout' ), $transaction_id );
 
-				// Don't change the order status if it was captured before
-				if ( $order->has_status( array( 'processing', 'completed', 'active' ) ) ) {
+				if ( empty( $order->get_date_paid() ) ) {
+					$order->payment_complete( $transaction_id );
 					$order->add_order_note( $message );
-				} else {
-					$this->update_order_status(
-						$order,
-						'on-hold',
-						$transaction_id,
-						sprintf( 'Payment has been authorized. Transaction: %s', $transaction_id )
-					);
+					$order->save();
 				}
 
 				break;
-			case self::TYPE_CAPTURE:
 			case self::TYPE_SALE:
+			case self::TYPE_CAPTURE:
+				// FIXME: Do we set to Completed even if partially captured?
 				$is_full_capture = false;
 
 				// Check if the payment was captured fully
-				// `remainingCaptureAmount` is missing if the payment was captured fully
+				// `remainingCaptureAmount` is missing if the payment was captured fully.
 				if ( ! isset( $payment_order['remainingCaptureAmount'] ) ) {
 					Swedbank_Pay()->logger()->debug(
 						sprintf(
@@ -440,11 +436,11 @@ class Swedbank_Pay_Api {
 					$is_full_capture = true;
 				}
 
-				// Update order status
+				// Update order status.
 				if ( $is_full_capture ) {
 					$this->update_order_status(
 						$order,
-						'processing',
+						'completed',
 						$transaction_id,
 						sprintf(
 							'Payment has been captured. Transaction: %s. Amount: %s',
@@ -585,7 +581,7 @@ class Swedbank_Pay_Api {
 		switch ( $status ) {
 			case 'checkout-draft':
 			case 'pending':
-				// Set pending
+				// Set pending.
 				if ( ! $order->has_status( 'pending' ) ) {
 					$order->update_status( 'pending', $message );
 				} elseif ( $message ) {
@@ -594,9 +590,10 @@ class Swedbank_Pay_Api {
 
 				break;
 			case 'on-hold':
-				// Set on-hold
+				// FIXME: Why do we need to reduce stock if it is on-hold?
+				// Set on-hold.
 				if ( ! $order->has_status( 'on-hold' ) ) {
-					// Reduce stock
+					// Reduce stock.
 					wc_maybe_reduce_stock_levels( $order_id );
 					$order->update_status( 'on-hold', $message );
 				} elseif ( $message ) {
@@ -608,7 +605,7 @@ class Swedbank_Pay_Api {
 				break;
 			case 'processing':
 			case 'completed':
-				if ( ! $order->is_paid() ) {
+				if ( empty( $order->get_date_paid() ) ) {
 					$order->payment_complete( $transaction_id );
 					if ( $message ) {
 						$order->add_order_note( $message );
@@ -629,7 +626,7 @@ class Swedbank_Pay_Api {
 
 				break;
 			case 'cancelled':
-				// Set cancelled
+				// Set cancelled.
 				if ( ! $order->has_status( 'cancelled' ) ) {
 					$order->update_status( 'cancelled', $message );
 				} elseif ( $message ) {
@@ -657,6 +654,8 @@ class Swedbank_Pay_Api {
 			default:
 				$order->update_status( $status, $message );
 		}
+
+		$order->save();
 	}
 
 	/**
