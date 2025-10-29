@@ -102,7 +102,7 @@ class Order {
 		foreach ( $formatted_items as $item ) {
 			// Swedbank does not allow negative values in any numeric field which will always be the case for WC_Order_Refund.
 			$items[] = array_map(
-				fn( $value ) => is_numeric( $value ) ? abs( $value ) : $value,
+				fn( $value ) => is_numeric( $value ) ? ( $item[ Swedbank_Pay_Order_Item::FIELD_TYPE ] === Swedbank_Pay_Order_Item::TYPE_DISCOUNT ? $value : abs( $value ) ) : $value,
 				$item
 			);
 
