@@ -144,6 +144,9 @@ class Order extends PaymentDataHelper {
 
 		$complete_url = $this->gateway->get_return_url( $this->order );
 		$cancel_url   = is_checkout() ? wc_get_checkout_url() : $this->order->get_cancel_order_url_raw();
+		if ( is_wc_endpoint_url( 'order-pay' ) ) {
+			$cancel_url = $this->order->get_checkout_payment_url( false );
+		}
 
 		$url_data = ( new PaymentorderUrl() )
 			->setHostUrls(
