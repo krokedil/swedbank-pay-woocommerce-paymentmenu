@@ -3,7 +3,8 @@
     "php": ">=7.4",
     "ramsey/uuid": "^3.7",
     "swedbank-pay/swedbank-pay-sdk-php": "^6.1",
-    "krokedil/support": "^1.0.0"
+    "krokedil/support": "^1.0.0",
+    "krokedil/settings-page": "^1.1.0"
   },
   "config": {
     "platform": {
@@ -14,6 +15,10 @@
     {
       "type": "vcs",
       "url": "git@github.com:krokedil/support.git"
+    },
+    {
+      "type": "vcs",
+      "url": "git@github.com:krokedil/settings-page.git"
     }
   ],
   "minimum-stability": "dev",
