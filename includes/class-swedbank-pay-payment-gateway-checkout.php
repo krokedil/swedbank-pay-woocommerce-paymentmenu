@@ -836,7 +836,10 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 	 * @return bool
 	 */
 	public function is_editable( $is_editable, $order ) {
-		return $order->get_payment_method() === $this->id ? false : $is_editable;
+		if ( $order->get_payment_method() !== $this->id ) {
+			return $is_editable;
+		}
+		return Swedbank_Pay_Subscription::order_has_subscription( $order );
 	}
 
 	/**
