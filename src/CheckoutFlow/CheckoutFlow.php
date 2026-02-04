@@ -88,7 +88,8 @@ abstract class CheckoutFlow {
 			);
 			return $handler->process( $order );
 		} catch ( \Exception $e ) {
-			return self::error_response( $e->getMessage() );
+			// Escaped HTML since its content will be printed in a WC notice.
+			throw new \WP_Exception( esc_html( $e->getMessage() ?? __( 'There was an error processing your payment. Please try again.', 'swedbank-pay-payment-menu' ) ) );
 		}
 	}
 
