@@ -237,7 +237,7 @@ class InlineEmbedded extends CheckoutFlow {
 		$result = $this->api->get_embedded_purchase();
 		if ( is_wp_error( $result ) ) {
 			$code    = \is_int( $result->get_error_code() ) ? \intval( $result->get_error_code() ) : 500;
-			$message = empty( $result->get_error_message() ) ? $result->get_error_message() : __( 'The payment could not be initiated.', 'swedbank-pay-payment-menu' );
+			$message = ! empty( $result->get_error_message() ) ? $result->get_error_message() : __( 'The payment could not be initiated.', 'swedbank-pay-payment-menu' );
 			throw new \Exception(
 				esc_html( $message ),
 				absint( $code )
