@@ -4,6 +4,8 @@ namespace Krokedil\Swedbank\Pay\CheckoutFlow;
 use SwedbankPay\Checkout\WooCommerce\Swedbank_Pay_Subscription;
 use WC_Order;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Class for processing the redirect checkout flow on the shortcode checkout page and pay for order pages.
  */
@@ -30,8 +32,8 @@ class Redirect extends CheckoutFlow {
 		$result = $this->api->initiate_purchase( $order );
 		if ( is_wp_error( $result ) ) {
 			throw new \Exception(
-				$result->get_error_message() ?? __( 'The payment could not be initiated.', 'swedbank-pay-woocommerce-checkout' ),
-				$result->get_error_code()
+				esc_html( $result->get_error_message() ?? __( 'The payment could not be initiated.', 'swedbank-pay-payment-menu' ) ),
+				absint( $result->get_error_code() )
 			);
 		}
 
