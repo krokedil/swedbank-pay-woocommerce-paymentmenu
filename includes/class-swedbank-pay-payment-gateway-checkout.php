@@ -867,21 +867,19 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 			$args = wp_remote_get( 'https://krokedil-settings-page-configs.s3.eu-north-1.amazonaws.com/develop/configs/swedbank-pay-woocommerce-paymentmenu.json' );
 
 			if ( is_wp_error( $args ) ) {
-				Swedbank_Pay()->logger()->log(
-					WC_Log_Levels::ERROR,
-					__METHOD__,
-					array(
-						'message' => 'Unable to fetch settings page configuration from remote source.',
-						'error'   => $args->get_error_message(),
-					)
-				);
+				Swedbank_Pay()->logger()->log( 'Unable to fetch settings page configuration from remote source.' );
 				return null;
 			}
 
-			$args = wp_remote_retrieve_body( $args );
-			set_transient( 'swedbank_pay_settings_page_config', $args, 60 * 60 * 24 ); // 24 hours lifetime.
+			$body = wp_remote_retrieve_body( $args );
+			$args = json_decode( $body, true );
+			if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $args ) ) {
+				Swedbank_Pay()->logger()->log( 'Invalid settings page configuration received from remote source.' );
+				return null;
+			}
+			set_transient( 'swedbank_pay_settings_page_config', $body, 60 * 60 * 24 ); // 24 hours lifetime.
 		}
 
-		return json_decode( $args, true );
+		return $args;
 	}
 }
