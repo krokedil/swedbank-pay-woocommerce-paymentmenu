@@ -862,24 +862,27 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 	 * @return array|null
 	 */
 	private function get_settings_page_args() {
-		$args = false; // get_transient( 'swedbank_pay_settings_page_config' );
-		if ( ! $args ) {
-			$args = wp_remote_get( 'https://krokedil-settings-page-configs.s3.eu-north-1.amazonaws.com/develop/configs/swedbank-pay-woocommerce-paymentmenu.json' );
+		$settings_config_transient = get_transient( 'swedbank_pay_settings_page_config' );
+		if ( ! $settings_config_transient ) {
+			$response = wp_remote_get( 'https://krokedil-settings-page-configs.s3.eu-north-1.amazonaws.com/develop/configs/swedbank-pay-woocommerce-paymentmenu.json' );
 
-			if ( is_wp_error( $args ) ) {
+			if ( is_wp_error( $response ) ) {
 				Swedbank_Pay()->logger()->log( 'Unable to fetch settings page configuration from remote source.' );
 				return null;
 			}
 
-			$body = wp_remote_retrieve_body( $args );
-			$args = json_decode( $body, true );
-			if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $args ) ) {
+			$body         = wp_remote_retrieve_body( $response );
+			$decoded_body = json_decode( $body, true );
+			if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $decoded_body ) ) {
 				Swedbank_Pay()->logger()->log( 'Invalid settings page configuration received from remote source.' );
 				return null;
 			}
 			set_transient( 'swedbank_pay_settings_page_config', $body, 60 * 60 * 24 ); // 24 hours lifetime.
+			$settings_config = $decoded_body;
+		} else {
+			$settings_config = json_decode( $settings_config_transient, true );
 		}
 
-		return $args;
+		return $settings_config;
 	}
 }
