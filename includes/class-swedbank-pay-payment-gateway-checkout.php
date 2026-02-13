@@ -451,7 +451,7 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 			$args['icon']            = plugins_url( 'assets/images/checkout.svg', __DIR__ );
 			$gateway_page            = new Gateway( $this, $args );
 			$args['general_content'] = array( $gateway_page, 'output' );
-			$settings_page           = ( SettingsPage::get_instance() )
+			( SettingsPage::get_instance() )
 			->set_plugin_name( 'Swedbank Pay Payment Menu for WooCommerce' )
 			->register_page( $this->id, $args, $this )
 			->output( $this->id );
