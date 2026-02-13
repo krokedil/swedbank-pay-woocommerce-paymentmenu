@@ -10,6 +10,8 @@ use SwedbankPay\Checkout\WooCommerce\Swedbank_Pay_Instant_Capture;
 use SwedbankPay\Checkout\WooCommerce\Swedbank_Pay_Payment_Actions;
 use SwedbankPay\Checkout\WooCommerce\Swedbank_Pay_Scheduler;
 use Krokedil\Swedbank\Pay\CheckoutFlow\CheckoutFlow;
+use KrokedilSwedbankPayDeps\Krokedil\SettingsPage\SettingsPage;
+use KrokedilSwedbankPayDeps\Krokedil\SettingsPage\Gateway;
 
 /**
  * @SuppressWarnings(PHPMD.CamelCaseClassName)
@@ -441,9 +443,21 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 	 * @return void
 	 */
 	public function admin_options() {
-		$this->display_errors();
+		$args = $this->get_settings_page_args();
 
-		parent::admin_options();
+		if ( empty( $args ) ) {
+			parent::admin_options();
+		} else {
+			$args['icon']            = plugins_url( 'assets/images/checkout.svg', __DIR__ );
+			$gateway_page            = new Gateway( $this, $args );
+			$args['general_content'] = array( $gateway_page, 'output' );
+			SettingsPage::get_instance()
+				->set_plugin_name( __( 'Swedbank Pay Payment Menu for WooCommerce', 'swedbank-pay-payment-menu' ) )
+				->register_page( $this->id, $args, $this )
+				->output( $this->id );
+		}
+
+		$this->display_errors();
 	}
 
 	/**
@@ -837,5 +851,38 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 	 */
 	public function payment_fields() {
 		CheckoutFlow::payment_fields();
+	}
+
+	/**
+	 * Read the settings page arguments from remote or local storage.
+	 * If the args are stored locally, they are fetched from the transient cache.
+	 * If they are not available locally, they are fetched from the remote source and stored in the transient cache.
+	 * If the remote source is not available, the function returns null, and default settings page will be used instead.
+	 *
+	 * @return array|null
+	 */
+	private function get_settings_page_args() {
+		$settings_config_transient = get_transient( 'swedbank_pay_settings_page_config' );
+		if ( ! $settings_config_transient ) {
+			$response = wp_remote_get( 'https://krokedil-settings-page-configs.s3.eu-north-1.amazonaws.com/develop/configs/swedbank-pay-woocommerce-paymentmenu.json' );
+
+			if ( is_wp_error( $response ) ) {
+				Swedbank_Pay()->logger()->log( 'Unable to fetch settings page configuration from remote source.' );
+				return null;
+			}
+
+			$body         = wp_remote_retrieve_body( $response );
+			$decoded_body = json_decode( $body, true );
+			if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $decoded_body ) ) {
+				Swedbank_Pay()->logger()->log( 'Invalid settings page configuration received from remote source.' );
+				return null;
+			}
+			set_transient( 'swedbank_pay_settings_page_config', $body, 60 * 60 * 24 ); // 24 hours lifetime.
+			$settings_config = $decoded_body;
+		} else {
+			$settings_config = json_decode( $settings_config_transient, true );
+		}
+
+		return $settings_config;
 	}
 }
