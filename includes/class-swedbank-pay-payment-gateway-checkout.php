@@ -490,6 +490,14 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 			return;
 		}
 
+		$context = array(
+			'order_id' => $order_id,
+		);
+		Swedbank_Pay()->logger()->info(
+			'[THANKYOU]: Thank you page processing started.',
+			$context
+		);
+
 		$this->api->log( WC_Log_Levels::INFO, __METHOD__, array( $order_id ) );
 		$is_finalized = $order->get_meta( '_payex_finalized' ); // Checks if the order has already been processed.
 		if ( ! empty( $is_finalized ) ) {
@@ -503,17 +511,40 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 
 		$payment_order_id = $order->get_meta( '_payex_paymentorder_id' );
 		if ( $payment_order_id ) {
+			$context[] = array(
+				'payment_order_id' => $payment_order_id,
+				'is_finalized'     => $order->get_meta( '_payex_finalized' ),
+			);
+
+			Swedbank_Pay()->logger()->info(
+				'[THANKYOU]: Flagging order as finalized.',
+				$context
+			);
+
 			$order->update_meta_data( '_payex_finalized', 1 );
 			$order->save_meta_data();
+
 		}
+
+		$context['is_finalized'] = $order->get_meta( '_payex_finalized' );
 
 		// WC will always capture an order that doesn't need processing. Therefore, we only have to set it is as completed if it needs it.
 		if ( wc_string_to_bool( $this->autocomplete ) ) {
+			Swedbank_Pay()->logger()->info(
+				'[THANKYOU]: Finalizing payment.',
+				$context
+			);
+
 			$this->api->finalize_payment( $order, null );
 			$order->update_status( 'completed', __( 'Order automatically captured after payment.', 'swedbank-pay-payment-menu' ) );
 			$order->save();
 
 		} else {
+			Swedbank_Pay()->logger()->info(
+				'[THANKYOU]: Processing payment complete without explicit finalizing.',
+				$context
+			);
+
 			$response = $gateway->api->request( 'GET', "$payment_order_id/paid" );
 			if ( ! is_wp_error( $response ) ) {
 				$order->payment_complete( $response['paid']['number'] );
@@ -522,7 +553,18 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 				$order->payment_complete();
 				$order->add_order_note( __( 'Payment completed successfully. Transaction number will soon be updated through callback.', 'swedbank-pay-payment-menu' ) );
 			}
+
+			$context['error'] = is_wp_error( $response ) ? $response->get_error_message() : null;
+			Swedbank_Pay()->logger()->info(
+				'[THANKYOU]: Payment completed without explicit finalizing.',
+				$context
+			);
 		}
+
+		Swedbank_Pay()->logger()->info(
+			'[THANKYOU]: Thank you page processing completed.',
+			$context
+		);
 	}
 
 	/**
