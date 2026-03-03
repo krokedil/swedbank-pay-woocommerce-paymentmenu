@@ -135,14 +135,36 @@ class Swedbank_Pay_Scheduler {
 			return false;
 		}
 
+		$context = array(
+			'order_id'           => $order->get_id(),
+			'payment_order_id'   => $payment_order_id,
+			'transaction_number' => $transaction_number,
+		);
+		Swedbank_Pay()->logger()->info(
+			'[SCHEDULER]: Finalizing payment.',
+			$context
+		);
+
 		// @todo Use https://developer.swedbankpay.com/checkout-v3/features/core/callback
 		$result = $gateway->api->finalize_payment( $order, $transaction_number );
 		if ( is_wp_error( Swedbank_Pay()->system_report()->request( $result ) ) ) {
 			$this->log( "[ERROR]: {$result->get_error_message()}" );
+
+			$context['error'] = $result->get_error_message();
+			Swedbank_Pay()->logger()->error(
+				'[SCHEDULER]: Finalizing payment failed.',
+				$context
+			);
+
 			return false;
 		}
 
 		do_action( 'swedbank_pay_scheduler_run_after', $order, $gateway, $webhook_data );
+
+		Swedbank_Pay()->logger()->info(
+			'[SCHEDULER]: Payment finalized successfully.',
+			$context
+		);
 
 		return false;
 	}

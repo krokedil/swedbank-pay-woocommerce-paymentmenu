@@ -240,15 +240,37 @@ class Swedbank_Pay_Background_Queue extends WC_Background_Process {
 			return false;
 		}
 
+		$context = array(
+			'order_id'           => $order->get_id(),
+			'payment_order_id'   => $payment_order_id,
+			'transaction_number' => $transaction_number,
+		);
+		Swedbank_Pay()->logger()->info(
+			'[BQ]: Finalizing payment.',
+			$context
+		);
+
 		// @todo Use https://developer.swedbankpay.com/checkout-v3/features/core/callback
 		$result = $gateway->api->finalize_payment( $order, $transaction_number );
 		if ( is_wp_error( Swedbank_Pay()->system_report()->request( $result ) ) ) {
 			/** @var \WP_Error $result */
 			$this->log( sprintf( '[ERROR]: %s', $result->get_error_message() ) );
 
+			$context['error'] = $result->get_error_message();
+			Swedbank_Pay()->logger()->error(
+				'[BQ]: Finalizing payment failed.',
+				$context
+			);
+
 			// Remove from queue
 			return false;
 		}
+
+		$context['result'] = $result;
+		Swedbank_Pay()->logger()->info(
+			'[BQ]: Payment finalized successfully.',
+			$context
+		);
 
 		// Remove from queue
 		return false;
