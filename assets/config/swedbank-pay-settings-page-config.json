@@ -1,81 +1,105 @@
 {
     "support": {
-        "use_helpscout": "no",
+        "use_helpscout": "yes",
         "content": [
-            {
+                      {
                 "type": "text",
                 "en": "Welcome to Swedbank Pay's support page.",
-                "sv": "V\u00e4lkommen till Swedbank Pays supportsida."
+                "sv": "Välkommen till Swedbank Pays supportsida."
+            },
+            {
+                "type": "text",
+                "en": "If you are a merchant in Estonia, Latvia or Lithuania, please contact our Paywerk support team at <a href=\"mailto:plugin-support@paywerk.co\">plugin-support@paywerk.co</a>. They will be happy to help you with any questions.",
+                "sv": "Om du är handlare i Estland, Lettland eller Litauen ber vi dig kontakta vårt Paywerk supportteam på <a href=\"mailto:plugin-support@paywerk.co\">plugin-support@paywerk.co</a>. De hjälper dig gärna med frågor."
+            },
+            {
+                "type": "text",
+                "en": "Merchants outside Estonia, Latvia, and Lithuania are welcome to contact Krokedil.",
+                "sv": "Handlare utanför Estland, Lettland och Litauen ska kontakta krokedil."
             },
             {
                 "type": "spacer"
             },
             {
-                "type": "link",
-                "text": {
-                    "en": "General plugin information",
-                    "sv": "Allm\u00e4n plugin information"
-                },
-                "target": "_blank",
-                "href": {
-                    "en": "https:\/\/krokedil.com\/product\/swedbank-pay-payment-menu\/\/?utm_source=swedbankpay&utm_medium=wp-admin&utm_campaign=add-ons",
-                    "sv": "https:\/\/krokedil.se\/produkt\/swedbank-pay-payment-menu\/?utm_source=swedbankpay&utm_medium=wp-admin&utm_campaign=add-ons"
-                }
-            },
-            {
-                "type": "link",
-                "text": {
-                    "en": "Technical documentation",
-                    "sv": "Teknisk dokumentation"
-                },
-                "target": "_blank",
-                "href": "https:\/\/docs.krokedil.com\/swedbank-pay-payment-menu\/?utm_source=swedbankpay&utm_medium=wp-admin&utm_campaign=add-ons"
-            },
-            {
-                "type": "link",
-                "text": {
-                    "en": "Krokedil general support information",
-                    "sv": "Krokedil generell support information"
-                },
-                "target": "_blank",
-                "href": "https:\/\/docs.krokedil.com\/krokedil-general-support-info\/?utm_source=swedbankpay&utm_medium=wp-admin&utm_campaign=add-ons"
-            },
-            {
-                "type": "spacer"
-            },
-            {
-                "type": "link_text",
-                "text": {
-                    "en": "To open a support ticket regarding Swedbank Pay, please email %s.",
-                    "sv": "F\u00f6r att \u00f6ppna ett support\u00e4rende g\u00e4llande Swedbank Pay, v\u00e4nligen maila %s."
-                },
-                "link": {
-                    "text": "support@swedbankpay.com",
-                    "href": {
-                        "en": "mailto:support@swedbankpay.com",
-                        "sv": "mailto:support@swedbankpay.com"
+                "type": "list",
+                "items": [
+                    {
+                        "type": "link_text",
+                        "text": {
+                            "en": "<b>WooCommerce system status report</b> - we automatically add %s from this website as an attachment to the support ticket form. This report contains information about your website that is very useful for troubleshooting issues, but you are absolutely free to remove the system status report when submitting the form if you wish to.",
+                            "sv": "<b>WooCommerce system status report</b> - vi lägger automatiskt till %s från denna webbplats som en bilaga till supportformuläret. Denna rapport innehåller information om din webbplats som är mycket användbar vid felsökning, men du är helt fri att ta bort systemstatusrapporten när du skickar in formuläret om du vill."
+                        },
+                        "link": {
+                            "text": {
+                                "en": "the WooCommerce system status report",
+                                "sv": "WooCommerce-systemstatusrapporten"
+                            },
+                            "target": "_blank",
+                            "class": "no-external-icon",
+                            "href": {
+                                "en": "/wp-admin/admin.php?page=wc-status",
+                                "sv": "/wp-admin/admin.php?page=wc-status"
+                            }
+                        }
+                    },
+                    {
+                        "type": "link_text",
+                        "text": {
+                            "en": "<b>QuickForget secret URL</b> - Providing relevant logs and screenshots can be very useful for troubleshooting e.g. a specific order. Get more information on how to find these %s and then use <a target='_blank' class='no-external-icon' href='https://quickforget.com/?views=20&hours=360'>quickforget.com</a> to upload and get a secret URL that you enter in the support ticket form.",
+                            "sv": "<b>QuickForget secret URL</b> - Att tillhandahålla relevanta loggar och skärmbilder kan vara mycket användbart vid felsökning, till exempel av en specifik order. Få mer information om hur du hittar dessa %s och använd sedan <a target='_blank' class='no-external-icon' href='https://quickforget.com/?views=20&hours=360'>quickforget.com</a> för att ladda upp och få en hemlig URL som du anger i supportformuläret."
+                        },
+                        "link": {
+                            "text": {
+                                "en": "here",
+                                "sv": "här"
+                            },
+                            "target": "_blank",
+                            "class": "no-external-icon",
+                            "href": "https://docs.krokedil.com/krokedil-general-support-info/prepare-a-support-ticket/#3-logs"
+                        }
+                    },
+                    {
+                        "type": "link_text",
+                        "text": {
+                            "en": "<b>Privacy information</b> - By submitting the support case, you provide us with personal information and any customer data. If you are interested in learning more about how we handle privacy information, read more %s.",
+                            "sv": "<b>Integritetsinformation</b> - Genom att skicka supportärendet tillhandahåller du oss personlig information och eventuella kunddata. Om du vill läsa mer om hur vi hanterar integritetsinformation, läs mer %s."
+                        },
+                        "link": {
+                            "text": {
+                                "en": "here",
+                                "sv": "här"
+                            },
+                            "target": "_blank",
+                            "class": "no-external-icon",
+                            "href": {
+                                "en": "https://krokedil.com/privacy-policy/",
+                                "sv": "https://krokedil.se/personuppgiftspolicy/"
+                            }
+                        }
                     }
-                }
+                ]
             },
             {
                 "type": "spacer"
             }
         ]
     },
-    "styled_output": false,
-    "settings_navigation": false,
     "sidebar": {
+        "developed_by": {
+            "by": "by",
+            "for": "Developed for"
+        },
         "plugin_resources": {
             "links": [
                 {
                     "text": {
                         "en": "General information",
-                        "sv": "Allm\u00e4n information"
+                        "sv": "Allmän information"
                     },
                     "target": "_blank",
                     "href": {
-                        "en": "https:\/\/krokedil.com\/product\/swedbank-pay-payment-menu\/?utm_source=swedbankpay&utm_medium=wp-admin&utm_campaign=settings-sidebar",
-                        "sv": "https:\/\/krokedil.se\/produkt\/swedbank-pay-payment-menu\/?utm_source=swedbankpay&utm_medium=wp-admin&utm_campaign=settings-sidebar"
+                        "en": "https://krokedil.com/product/swedbank-pay-payment-menu/?utm_source=sp&utm_medium=wp-admin&utm_campaign=settings-sidebar",
+                        "sv": "https://krokedil.se/product/swedbank-pay-payment-menu/?utm_source=sp&utm_medium=wp-admin&utm_campaign=settings-sidebar"
                     }
                 },
                 {
@@ -84,50 +108,14 @@
                         "sv": "Teknisk dokumentation"
                     },
                     "target": "_blank",
-                    "href": "https:\/\/docs.krokedil.com\/swedbank-pay-payment-menu\/?utm_source=swedbankpay&utm_medium=wp-admin&utm_campaign=settings-sidebar"
+                    "href": "https://docs.krokedil.com/swedbank-pay-payment-menu/?utm_source=sp&utm_medium=wp-admin&utm_campaign=settings-sidebar"
                 },
                 {
                     "text": {
                         "en": "Support",
                         "sv": "Support"
                     },
-                    "href": "\/wp-admin\/admin.php?page=wc-settings&tab=checkout&section=payex_checkout&subsection=support"
-                }
-            ]
-        },
-        "additional_resources": {
-            "links": [
-                {
-                    "text": {
-                        "en": "General Support Information",
-                        "sv": "Generell support information"
-                    },
-                    "target": "_blank",
-                    "href": {
-                        "en": "https:\/\/docs.krokedil.com\/krokedil-general-support-info\/?utm_source=swedbankpay&utm_medium=wp-admin&utm_campaign=add-ons"
-                    }
-                },
-                {
-                    "text": {
-                        "en": "Other Krokedil plugins",
-                        "sv": "Andra Krokedil till\u00e4gg"
-                    },
-                    "target": "_blank",
-                    "href": {
-                        "en": "https:\/\/krokedil.com\/products\/?utm_source=swedbankpay&utm_medium=wp-admin&utm_campaign=add-ons",
-                        "sv": "https:\/\/krokedil.se\/produkter\/?utm_source=swedbankpay&utm_medium=wp-admin&utm_campaign=add-ons"
-                    }
-                },
-                {
-                    "text": {
-                        "en": "Krokedil blog",
-                        "sv": "Krokedil blogg"
-                    },
-                    "target": "_blank",
-                    "href": {
-                        "en": "https:\/\/krokedil.com\/knowledge\/?utm_source=swedbankpay&utm_medium=wp-admin&utm_campaign=add-ons",
-                        "sv": "https:\/\/krokedil.se\/kunskap\/?utm_source=swedbankpay&utm_medium=wp-admin&utm_campaign=add-ons"
-                    }
+                    "href": "/wp-admin/admin.php?page=wc-settings&tab=checkout&section=swedbank_pay&subsection=support"
                 }
             ]
         }
