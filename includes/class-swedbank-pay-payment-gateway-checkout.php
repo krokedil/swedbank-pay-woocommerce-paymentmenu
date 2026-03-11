@@ -854,33 +854,43 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 	}
 
 	/**
-	 * Read the settings page arguments from remote or local storage.
-	 * If the args are stored locally, they are fetched from the transient cache.
-	 * If they are not available locally, they are fetched from the remote source and stored in the transient cache.
-	 * If the remote source is not available, the function returns null, and default settings page will be used instead.
+	 * Read the settings page arguments from local storage.
+	 *
+	 * The file content is cached in a transient for 24 hours.
+	 * If the local source is not available, the function returns null and the default
+	 * WooCommerce settings page will be used instead.
 	 *
 	 * @return array|null
 	 */
 	private function get_settings_page_args() {
 		$settings_config_transient = get_transient( 'swedbank_pay_settings_page_config' );
 		if ( ! $settings_config_transient ) {
-			$response = wp_remote_get( 'https://krokedil-settings-page-configs.s3.eu-north-1.amazonaws.com/develop/configs/swedbank-pay-woocommerce-paymentmenu.json' );
-
-			if ( is_wp_error( $response ) ) {
-				Swedbank_Pay()->logger()->log( 'Unable to fetch settings page configuration from remote source.' );
+			$config_file_path = dirname( __DIR__ ) . '/assets/config/swedbank-pay-settings-page-config.json';
+			if ( ! file_exists( $config_file_path ) || ! is_readable( $config_file_path ) ) {
+				Swedbank_Pay()->logger()->log( 'Unable to load settings page configuration from local file.' );
 				return null;
 			}
 
-			$body         = wp_remote_retrieve_body( $response );
+			$body = file_get_contents( $config_file_path );
+			if ( false === $body ) {
+				Swedbank_Pay()->logger()->log( 'Unable to read settings page configuration from local file.' );
+				return null;
+			}
+
 			$decoded_body = json_decode( $body, true );
 			if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $decoded_body ) ) {
-				Swedbank_Pay()->logger()->log( 'Invalid settings page configuration received from remote source.' );
+				Swedbank_Pay()->logger()->log( 'Invalid settings page configuration found in local file.' );
 				return null;
 			}
+
 			set_transient( 'swedbank_pay_settings_page_config', $body, 60 * 60 * 24 ); // 24 hours lifetime.
 			$settings_config = $decoded_body;
 		} else {
 			$settings_config = json_decode( $settings_config_transient, true );
+			if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $settings_config ) ) {
+				Swedbank_Pay()->logger()->log( 'Invalid settings page configuration found in transient cache.' );
+				return null;
+			}
 		}
 
 		return $settings_config;

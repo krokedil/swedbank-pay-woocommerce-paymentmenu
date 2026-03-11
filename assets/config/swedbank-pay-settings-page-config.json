@@ -1,0 +1,135 @@
+{
+    "support": {
+        "use_helpscout": "no",
+        "content": [
+            {
+                "type": "text",
+                "en": "Welcome to Swedbank Pay's support page.",
+                "sv": "V\u00e4lkommen till Swedbank Pays supportsida."
+            },
+            {
+                "type": "spacer"
+            },
+            {
+                "type": "link",
+                "text": {
+                    "en": "General plugin information",
+                    "sv": "Allm\u00e4n plugin information"
+                },
+                "target": "_blank",
+                "href": {
+                    "en": "https:\/\/krokedil.com\/product\/swedbank-pay-payment-menu\/\/?utm_source=swedbankpay&utm_medium=wp-admin&utm_campaign=add-ons",
+                    "sv": "https:\/\/krokedil.se\/produkt\/swedbank-pay-payment-menu\/?utm_source=swedbankpay&utm_medium=wp-admin&utm_campaign=add-ons"
+                }
+            },
+            {
+                "type": "link",
+                "text": {
+                    "en": "Technical documentation",
+                    "sv": "Teknisk dokumentation"
+                },
+                "target": "_blank",
+                "href": "https:\/\/docs.krokedil.com\/swedbank-pay-payment-menu\/?utm_source=swedbankpay&utm_medium=wp-admin&utm_campaign=add-ons"
+            },
+            {
+                "type": "link",
+                "text": {
+                    "en": "Krokedil general support information",
+                    "sv": "Krokedil generell support information"
+                },
+                "target": "_blank",
+                "href": "https:\/\/docs.krokedil.com\/krokedil-general-support-info\/?utm_source=swedbankpay&utm_medium=wp-admin&utm_campaign=add-ons"
+            },
+            {
+                "type": "spacer"
+            },
+            {
+                "type": "link_text",
+                "text": {
+                    "en": "To open a support ticket regarding Swedbank Pay, please email %s.",
+                    "sv": "F\u00f6r att \u00f6ppna ett support\u00e4rende g\u00e4llande Swedbank Pay, v\u00e4nligen maila %s."
+                },
+                "link": {
+                    "text": "support@swedbankpay.com",
+                    "href": {
+                        "en": "mailto:support@swedbankpay.com",
+                        "sv": "mailto:support@swedbankpay.com"
+                    }
+                }
+            },
+            {
+                "type": "spacer"
+            }
+        ]
+    },
+    "styled_output": false,
+    "settings_navigation": false,
+    "sidebar": {
+        "plugin_resources": {
+            "links": [
+                {
+                    "text": {
+                        "en": "General information",
+                        "sv": "Allm\u00e4n information"
+                    },
+                    "target": "_blank",
+                    "href": {
+                        "en": "https:\/\/krokedil.com\/product\/swedbank-pay-payment-menu\/?utm_source=swedbankpay&utm_medium=wp-admin&utm_campaign=settings-sidebar",
+                        "sv": "https:\/\/krokedil.se\/produkt\/swedbank-pay-payment-menu\/?utm_source=swedbankpay&utm_medium=wp-admin&utm_campaign=settings-sidebar"
+                    }
+                },
+                {
+                    "text": {
+                        "en": "Technical documentation",
+                        "sv": "Teknisk dokumentation"
+                    },
+                    "target": "_blank",
+                    "href": "https:\/\/docs.krokedil.com\/swedbank-pay-payment-menu\/?utm_source=swedbankpay&utm_medium=wp-admin&utm_campaign=settings-sidebar"
+                },
+                {
+                    "text": {
+                        "en": "Support",
+                        "sv": "Support"
+                    },
+                    "href": "\/wp-admin\/admin.php?page=wc-settings&tab=checkout&section=payex_checkout&subsection=support"
+                }
+            ]
+        },
+        "additional_resources": {
+            "links": [
+                {
+                    "text": {
+                        "en": "General Support Information",
+                        "sv": "Generell support information"
+                    },
+                    "target": "_blank",
+                    "href": {
+                        "en": "https:\/\/docs.krokedil.com\/krokedil-general-support-info\/?utm_source=swedbankpay&utm_medium=wp-admin&utm_campaign=add-ons"
+                    }
+                },
+                {
+                    "text": {
+                        "en": "Other Krokedil plugins",
+                        "sv": "Andra Krokedil till\u00e4gg"
+                    },
+                    "target": "_blank",
+                    "href": {
+                        "en": "https:\/\/krokedil.com\/products\/?utm_source=swedbankpay&utm_medium=wp-admin&utm_campaign=add-ons",
+                        "sv": "https:\/\/krokedil.se\/produkter\/?utm_source=swedbankpay&utm_medium=wp-admin&utm_campaign=add-ons"
+                    }
+                },
+                {
+                    "text": {
+                        "en": "Krokedil blog",
+                        "sv": "Krokedil blogg"
+                    },
+                    "target": "_blank",
+                    "href": {
+                        "en": "https:\/\/krokedil.com\/knowledge\/?utm_source=swedbankpay&utm_medium=wp-admin&utm_campaign=add-ons",
+                        "sv": "https:\/\/krokedil.se\/kunskap\/?utm_source=swedbankpay&utm_medium=wp-admin&utm_campaign=add-ons"
+                    }
+                }
+            ]
+        }
+    }
+}
