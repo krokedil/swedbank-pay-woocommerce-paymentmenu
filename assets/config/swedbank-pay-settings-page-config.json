@@ -2,10 +2,38 @@
     "support": {
         "use_helpscout": "yes",
         "content": [
-                      {
-                "type": "text",
-                "en": "Welcome to Swedbank Pay's support page.",
-                "sv": "Välkommen till Swedbank Pays supportsida."
+                        {
+                "type": "link",
+                "text": {
+                    "en": "General plugin information",
+                    "sv": "Allmän plugin information"
+                },
+                "target": "_blank",
+                "href": {
+                    "en": "https://krokedil.com/product/swedbank-pay-payment-menu//?utm_source=swedbankpay&utm_medium=wp-admin&utm_campaign=add-ons",
+                    "sv": "https://krokedil.se/produkt/swedbank-pay-payment-menu/?utm_source=swedbankpay&utm_medium=wp-admin&utm_campaign=add-ons"
+                }
+            },
+            {
+                "type": "link",
+                "text": {
+                    "en": "Technical documentation",
+                    "sv": "Teknisk dokumentation"
+                },
+                "target": "_blank",
+                "href": "https://docs.krokedil.com/swedbank-pay-payment-menu/?utm_source=swedbankpay&utm_medium=wp-admin&utm_campaign=add-ons"
+            },
+            {
+                "type": "link",
+                "text": {
+                    "en": "Krokedil general support information",
+                    "sv": "Krokedil generell support information"
+                },
+                "target": "_blank",
+                "href": "https://docs.krokedil.com/krokedil-general-support-info/?utm_source=swedbankpay&utm_medium=wp-admin&utm_campaign=add-ons"
+            },
+            {
+                "type": "spacer"
             },
             {
                 "type": "text",
