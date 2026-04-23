@@ -31,6 +31,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 			: </strong> <?php echo esc_html( $info['paid']['payeeReference'] ); ?>
 		<br/>
 	<?php endif; ?>
+	<?php $transaction_url = $gateway->get_transaction_url( $order ); ?>
+	<?php if ( $transaction_url ) : ?>
+		<a href="<?php echo esc_url( $transaction_url ); ?>"
+			target="_blank"
+			class="button button-secondary swedbank-pay-transaction-link">
+			<?php esc_html_e( 'View in Merchant Portal', 'swedbank-pay-payment-menu' ); ?>
+		</a>
+		<br/>
+	<?php endif; ?>
+
 	<?php if ( $gateway->api->can_capture( $order ) ) : ?>
 		<button id="swedbank_pay_capture"
 				data-nonce="<?php echo esc_attr( wp_create_nonce( 'swedbank_pay' ) ); ?>"
