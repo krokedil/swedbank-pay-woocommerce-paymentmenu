@@ -34,8 +34,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<?php $transaction_url = $gateway->get_transaction_url( $order ); ?>
 	<?php if ( $transaction_url ) : ?>
 		<a href="<?php echo esc_url( $transaction_url ); ?>"
-		   target="_blank"
-		   class="button button-secondary">
+			target="_blank"
+			class="button button-secondary swedbank-pay-transaction-link">
 			<?php esc_html_e( 'View in Merchant Portal', 'swedbank-pay-payment-menu' ); ?>
 		</a>
 		<br/>
