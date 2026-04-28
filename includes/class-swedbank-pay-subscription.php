@@ -204,7 +204,24 @@ class Swedbank_Pay_Subscription {
 
 		$payment_order = $helper->get_payment_order()
 		->setOperation( 'UnscheduledPurchase' )
-		->setUnscheduledToken( $token );
+		->setUnscheduledToken( $token )
+		->setDescription(
+			apply_filters(
+				'swedbank_pay_payment_description',
+				mb_substr(
+					trim(
+						sprintf(
+							// translators: 1: Order number.
+							__( 'Order #%1$s', 'swedbank-pay-payment-menu' ),
+							$order->get_order_number()
+						)
+					),
+					0,
+					40
+				),
+				$order
+			)
+		);
 
 		$payment_order_object = new PaymentorderObject();
 		$payment_order_object->setPaymentorder( $payment_order );
