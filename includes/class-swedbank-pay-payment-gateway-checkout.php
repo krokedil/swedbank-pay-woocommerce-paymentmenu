@@ -211,40 +211,16 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 	public static function locale_to_culture() {
 		$locale = get_locale();
 
-		$supported_cultures = array(
-			'da_DK',
-			'de_DE',
-			'de_AT',
-			'de_CH',
-			'es_ES',
-			'et',
-			'et_EE',
-			'fi',
-			'fi_FI',
-			'fr_FR',
-			'fr_BE',
-			'lt_LT',
-			'lv',
-			'lv_LV',
-			'nb_NO',
-			'pl_PL',
-			'ru_RU',
-			'sv_SE',
-			'en_US',
-		);
-
-		$culture = in_array( $locale, $supported_cultures, true ) ? $locale : 'en_US';
-
 		// Format exceptions for locales that do not match the expected format, e.g. fi_FI for Finnish in Finland.
-		switch ( $culture ) {
+		switch ( $locale ) {
 			case 'fi':
-				$culture = 'fi_FI';
+				$locale = 'fi_FI';
 				break;
 			default:
 				break;
 		}
 
-		return substr( str_replace( '_', '-', $culture ), 0, 5 );
+		return substr( str_replace( '_', '-', $locale ), 0, 5 );
 	}
 
 	/**
