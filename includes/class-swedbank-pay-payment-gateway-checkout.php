@@ -233,7 +233,7 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 			'en_US',
 		);
 
-		$culture = $supported_cultures[ $locale ] ?? 'en_US';
+		$culture = in_array( $locale, $supported_cultures, true ) ? $locale : 'en_US';
 
 		// Format exceptions for locales that do not match the expected format, e.g. fi_FI for Finnish in Finland.
 		switch ( $culture ) {
