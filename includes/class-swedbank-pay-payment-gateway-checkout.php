@@ -162,7 +162,7 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 		$this->access_token                 = $this->settings['access_token'] ?? $this->access_token;
 		$this->payee_id                     = $this->settings['payee_id'] ?? $this->payee_id;
 		$this->testmode                     = $this->settings['testmode'] ?? $this->testmode;
-		$this->culture                      = self::locale_to_culture( get_locale() );
+		$this->culture                      = self::locale_to_culture();
 		$this->logo_url                     = $this->settings['logo_url'] ?? $this->logo_url;
 		$this->instant_capture              = $this->settings['instant_capture'] ?? $this->instant_capture;
 		$this->terms_url                    = $this->settings['terms_url'] ?? get_site_url();
@@ -204,34 +204,47 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 	}
 
 	/**
-	 * Map a WordPress locale string to a Swedbank Pay culture code.
+	 * Convert WordPress locale to Swedbank Pay culture code.
 	 *
-	 * @param string $locale WordPress locale, e.g. 'sv_SE'.
-	 * @return string Swedbank Pay culture code, e.g. 'sv-SE'. Falls back to 'en-US'.
+	 * @return string Swedbank Pay culture code, e.g. 'sv-SE'.
 	 */
-	public static function locale_to_culture( string $locale ): string {
-		$map = array(
-			'da_DK' => 'da-DK',
-			'de_DE' => 'de-DE',
-			'de_AT' => 'de-DE',
-			'de_CH' => 'de-DE',
-			'es_ES' => 'es-ES',
-			'et'    => 'et-EE',
-			'et_EE' => 'et-EE',
-			'fi'    => 'fi-FI',
-			'fi_FI' => 'fi-FI',
-			'fr_FR' => 'fr-FR',
-			'fr_BE' => 'fr-FR',
-			'lt_LT' => 'lt-LT',
-			'lv'    => 'lv-LV',
-			'lv_LV' => 'lv-LV',
-			'nb_NO' => 'nb-NO',
-			'pl_PL' => 'pl-PL',
-			'ru_RU' => 'ru-RU',
-			'sv_SE' => 'sv-SE',
+	public static function locale_to_culture() {
+		$locale = get_locale();
+
+		$supported_cultures = array(
+			'da_DK',
+			'de_DE',
+			'de_AT',
+			'de_CH',
+			'es_ES',
+			'et',
+			'et_EE',
+			'fi',
+			'fi_FI',
+			'fr_FR',
+			'fr_BE',
+			'lt_LT',
+			'lv',
+			'lv_LV',
+			'nb_NO',
+			'pl_PL',
+			'ru_RU',
+			'sv_SE',
+			'en_US',
 		);
 
-		return $map[ $locale ] ?? 'en-US';
+		$culture = $supported_cultures[ $locale ] ?? 'en_US';
+
+		// Format exceptions for locales that do not match the expected format, e.g. fi_FI for Finnish in Finland.
+		switch ( $culture ) {
+			case 'fi':
+				$culture = 'fi_FI';
+				break;
+			default:
+				break;
+		}
+
+		return substr( str_replace( '_', '-', $culture ), 0, 5 );
 	}
 
 	/**
