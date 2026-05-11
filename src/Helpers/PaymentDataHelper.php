@@ -1,6 +1,7 @@
 <?php
 namespace Krokedil\Swedbank\Pay\Helpers;
 
+use KrokedilSwedbankPayDeps\Krokedil\WooCommerce\Base;
 use KrokedilSwedbankPayDeps\SwedbankPay\Api\Service\Paymentorder\Resource\Collection\OrderItemsCollection;
 use KrokedilSwedbankPayDeps\SwedbankPay\Api\Service\Paymentorder\Resource\Collection\Item\OrderItem;
 use KrokedilSwedbankPayDeps\SwedbankPay\Api\Service\Paymentorder\Resource\Request\Paymentorder;
@@ -38,6 +39,26 @@ abstract class PaymentDataHelper {
 	 * @var array|null
 	 */
 	protected $formatted_items = null;
+
+	/**
+	 * Shared Krokedil price helper, configured for minor units (e.g. öre).
+	 *
+	 * @var Base|null
+	 */
+	private static $price_helper = null;
+
+	/**
+	 * Get the Krokedil price helper, lazily instantiated once and reused.
+	 *
+	 * @return Base
+	 */
+	protected static function price_helper() {
+		if ( null === self::$price_helper ) {
+			self::$price_helper = new Base( array( 'price_format' => 'minor' ) );
+		}
+
+		return self::$price_helper;
+	}
 
 	/**
 	 * Get the formatted items.

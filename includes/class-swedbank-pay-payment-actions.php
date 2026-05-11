@@ -15,6 +15,7 @@ use WC_Payment_Gateway;
 use WC_Log_Levels;
 use WC_Order;
 use Swedbank_Pay_Payment_Gateway_Checkout;
+use KrokedilSwedbankPayDeps\Krokedil\WooCommerce\Base;
 
 /**
  * @SuppressWarnings(PHPMD.CamelCaseClassName)
@@ -33,10 +34,18 @@ class Swedbank_Pay_Payment_Actions {
 	private $gateway;
 
 	/**
+	 * Shared Krokedil price helper, configured for minor units (e.g. öre).
+	 *
+	 * @var Base
+	 */
+	private $price_helper;
+
+	/**
 	 * @param Swedbank_Pay_Payment_Gateway_Checkout|WC_Payment_Gateway $gateway
 	 */
 	public function __construct( $gateway ) {
-		$this->gateway = $gateway;
+		$this->gateway      = $gateway;
+		$this->price_helper = new Base( array( 'price_format' => 'minor' ) );
 	}
 
 	/**
@@ -262,10 +271,10 @@ class Swedbank_Pay_Payment_Actions {
 			$order_item = array(
 				Swedbank_Pay_Order_Item::FIELD_NAME        => $product_name,
 				Swedbank_Pay_Order_Item::FIELD_DESCRIPTION => mb_substr( trim( $product_name ), 0, 40 ),
-				Swedbank_Pay_Order_Item::FIELD_UNITPRICE   => (int) bcmul( 100, $unit_price ),
-				Swedbank_Pay_Order_Item::FIELD_VAT_PERCENT => (int) bcmul( 100, $tax_percent ),
-				Swedbank_Pay_Order_Item::FIELD_AMOUNT      => (int) bcmul( 100, $refund_amount ),
-				Swedbank_Pay_Order_Item::FIELD_VAT_AMOUNT  => (int) bcmul( 100, $refund_tax ),
+				Swedbank_Pay_Order_Item::FIELD_UNITPRICE   => $this->price_helper->format_price( $unit_price ),
+				Swedbank_Pay_Order_Item::FIELD_VAT_PERCENT => $this->price_helper->format_price( $tax_percent ),
+				Swedbank_Pay_Order_Item::FIELD_AMOUNT      => $this->price_helper->format_price( $refund_amount ),
+				Swedbank_Pay_Order_Item::FIELD_VAT_AMOUNT  => $this->price_helper->format_price( $refund_tax ),
 				Swedbank_Pay_Order_Item::FIELD_QTY         => $qty,
 				Swedbank_Pay_Order_Item::FIELD_QTY_UNIT    => 'pcs',
 			);

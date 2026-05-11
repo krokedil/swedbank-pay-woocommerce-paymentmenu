@@ -244,8 +244,7 @@ class Order extends PaymentDataHelper {
 			$items = $this->get_formatted_items();
 
 			$payment_order->setAmount(
-				(int) bcmul(
-					100,
+				self::price_helper()->format_price(
 					apply_filters(
 						'swedbank_pay_order_amount',
 						$this->order->get_total(),
