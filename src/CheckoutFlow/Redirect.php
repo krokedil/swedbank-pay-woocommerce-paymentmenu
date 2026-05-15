@@ -58,7 +58,16 @@ class Redirect extends CheckoutFlow {
 	 * @return void
 	 */
 	protected function payment_fields_content( $gateway_id = 'payex_checkout' ) {
-		$description = $this->gateway->get_option( 'description' );
+		$gateway = $this->gateway;
+
+		if ( ! empty( $gateway_id ) && function_exists( 'WC' ) && WC()->payment_gateways() ) {
+			$payment_gateways = WC()->payment_gateways()->payment_gateways();
+			if ( isset( $payment_gateways[ $gateway_id ] ) ) {
+				$gateway = $payment_gateways[ $gateway_id ];
+			}
+		}
+
+		$description = method_exists( $gateway, 'get_option' ) ? $gateway->get_option( 'description' ) : '';
 		if ( $description ) {
 			echo wp_kses_post( wpautop( wptexturize( $description ) ) );
 		}
