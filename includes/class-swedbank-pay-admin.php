@@ -9,7 +9,6 @@ use WC_Log_Levels;
 use Exception;
 use SwedbankPay\Checkout\WooCommerce\Swedbank_Pay_Subscription;
 use Krokedil\Swedbank\Pay\Helpers\HPOS;
-use Krokedil\Swedbank\Pay\Utility\LogUtility;
 
 /**
  * @SuppressWarnings(PHPMD.CamelCaseClassName)
@@ -66,8 +65,9 @@ class Swedbank_Pay_Admin {
 	}
 
 	public function prevent_online_refund( $order_id, $refund_id ) {
-		$order = wc_get_order( $order_id );
-		if ( swedbank_pay_is_payment_swedbank_method( $order->get_payment_method() ) ) {
+		$order          = wc_get_order( $order_id );
+		$payment_method = $order->get_payment_method();
+		if ( in_array( $payment_method, Swedbank_Pay_Plugin::PAYMENT_METHODS, true ) ) {
 			// Prevent online refund when order status changed to "refunded"
 			set_transient(
 				'sb_refund_prevent_online_refund_' . $order_id,
@@ -86,7 +86,8 @@ class Swedbank_Pay_Admin {
 	 * @return array
 	 */
 	public function add_valid_order_statuses( $statuses, $order ) {
-		if ( swedbank_pay_is_payment_swedbank_method( $order->get_payment_method() ) ) {
+		$payment_method = $order->get_payment_method();
+		if ( in_array( $payment_method, Swedbank_Pay_Plugin::PAYMENT_METHODS, true ) ) {
 			$statuses = array_merge(
 				$statuses,
 				array(
@@ -109,8 +110,9 @@ class Swedbank_Pay_Admin {
 	public static function add_meta_boxes( $screen_id, $order ) {
 		$hook_to_check = swedbank_pay_is_hpos_enabled() ? wc_get_page_screen_id( 'shop-order' ) : 'shop_order';
 		if ( $hook_to_check === $screen_id ) {
-			$order = wc_get_order( $order );
-			if ( swedbank_pay_is_payment_swedbank_method( $order->get_payment_method() ) ) {
+			$order          = wc_get_order( $order );
+			$payment_method = $order->get_payment_method();
+			if ( in_array( $payment_method, Swedbank_Pay_Plugin::PAYMENT_METHODS, true ) ) {
 				$payment_order_id = $order->get_meta( '_payex_paymentorder_id' );
 				if ( ! empty( $payment_order_id ) ) {
 					$screen = swedbank_pay_is_hpos_enabled() ? wc_get_page_screen_id( 'shop-order' ) : 'shop_order';
@@ -142,7 +144,8 @@ class Swedbank_Pay_Admin {
 		}
 
 		// Get Payment Gateway
-		if ( ! swedbank_pay_is_payment_swedbank_method( $order->get_payment_method() ) ) {
+		$payment_method = $order->get_payment_method();
+		if ( ! in_array( $payment_method, Swedbank_Pay_Plugin::PAYMENT_METHODS, true ) ) {
 			return;
 		}
 
@@ -153,9 +156,8 @@ class Swedbank_Pay_Admin {
 			return;
 		}
 
-		// Fetch payment info.
-		LogUtility::$title = "[METABOX]: Fetch payment info for order #{$order->get_order_number()}";
-		$result            = $gateway->api->request( 'GET', $payment_order_id . '/paid' );
+		// Fetch payment info
+		$result = $gateway->api->request( 'GET', $payment_order_id . '/paid' );
 		if ( is_wp_error( Swedbank_Pay()->system_report()->request( $result ) ) ) {
 			return;
 		}
@@ -184,7 +186,8 @@ class Swedbank_Pay_Admin {
 		}
 
 		// Get Payment Gateway
-		if ( swedbank_pay_is_payment_swedbank_method( $order->get_payment_method() ) ) {
+		$payment_method = $order->get_payment_method();
+		if ( in_array( $payment_method, Swedbank_Pay_Plugin::PAYMENT_METHODS, true ) ) {
 			// Get Payment Gateway
 			$gateway = swedbank_pay_get_payment_method( $order );
 			if ( ! $gateway ) {
@@ -217,7 +220,7 @@ class Swedbank_Pay_Admin {
 			$order_id = HPOS::get_the_ID();
 			$order    = wc_get_order( $order_id );
 
-			if ( empty( $order ) || ! swedbank_pay_is_payment_swedbank_method( $order->get_payment_method() ) ) {
+			if ( empty( $order ) || 'payex_checkout' !== $order->get_payment_method() ) {
 				return;
 			}
 
@@ -466,11 +469,11 @@ class Swedbank_Pay_Admin {
 	 */
 	public static function order_status_changed_transaction( $order_id, $old_status, $new_status ) {
 		$order = wc_get_order( $order_id );
-		if ( ! swedbank_pay_is_payment_swedbank_method( $order->get_payment_method() ) ) {
+		if ( ! in_array( $order->get_payment_method(), Swedbank_Pay_Plugin::PAYMENT_METHODS, true ) ) {
 			return;
 		}
 
-		// Allow to change status from `processing` to `completed`. This is handled elsewhere, and specifically in the OrderManagement class.
+		// Allow to change status from `processing` to `completed`.
 		if ( 'processing' === $old_status && 'completed' === $new_status ) {
 			return;
 		}
@@ -493,61 +496,52 @@ class Swedbank_Pay_Admin {
 
 		$gateway = swedbank_pay_get_payment_method( $order );
 
-		$payment_order_id = $order->get_meta( '_payex_paymentorder_id' );
-		$context          = array(
-			'order_id'         => $order_id,
-			'order_number'     => $order->get_order_number(),
-			'amount'           => $order->get_total(),
-			'transaction_id'   => $order->get_transaction_id(),
-			'payment_order_id' => $payment_order_id,
+		Swedbank_Pay()->logger()->log(
+			'Order status change trigger: ' . $new_status . ' OrderID: ' . $order_id
 		);
 
 		try {
 			switch ( $new_status ) {
 				case 'completed':
-					$context['action'] = 'capture_order';
-					Swedbank_Pay()->logger()->info( "[ORDER MANAGEMENT]: Trying to capture {$order->get_order_number()}", $context );
-					if ( $payment_order_id && $gateway->api->is_captured( $payment_order_id ) ) {
-						Swedbank_Pay()->logger()->info( "[ORDER MANAGEMENT]: The order #{$order->get_order_number()} is already captured.", $context );
+					$payment_id = $order->get_meta( '_payex_paymentorder_id' );
+					if ( $payment_id && $gateway->api->is_captured( $payment_id ) ) {
+						$gateway->api->log( WC_Log_Levels::INFO, "The order {$order->get_order_number()} is already captured." );
 						return;
 					}
+					$gateway->api->log( WC_Log_Levels::INFO, 'Try to capture...' );
 					$result = $gateway->payment_actions_handler->capture_payment( $order );
 					if ( is_wp_error( Swedbank_Pay()->system_report()->request( $result ) ) ) {
-						$context['error'] = join( '; ', $result->get_error_messages() );
-						Swedbank_Pay()->logger()->error( "[ORDER MANAGEMENT]: Failed to capture #{$order->get_order_number()}", $context );
-						throw new Exception( $result->get_error_message() );
+						/** @var \WP_Error $result */
+						throw new \Exception( $result->get_error_message() );
 					}
 
-					$order->add_order_note( __( 'Payment has been captured by order status change.', 'swedbank-pay-payment-menu' ) );
-					Swedbank_Pay()->logger()->info( "[ORDER MANAGEMENT]: Successfully captured #{$order->get_order_number()}", $context );
+					$order->add_order_note(
+						__( 'Payment has been captured by order status change.', 'swedbank-pay-payment-menu' )
+					);
 
 					break;
 				case 'cancelled':
-					$context['action'] = 'cancel_order';
-					Swedbank_Pay()->logger()->info( "[ORDER MANAGEMENT]: Trying to cancel #{$order->get_order_number()}", $context );
+					$gateway->api->log( WC_Log_Levels::INFO, 'Try to cancel...' );
 					$result = $gateway->payment_actions_handler->cancel_payment( $order );
 					if ( is_wp_error( Swedbank_Pay()->system_report()->request( $result ) ) ) {
-						$context['error'] = join( '; ', $result->get_error_messages() );
-						Swedbank_Pay()->logger()->error( "[ORDER MANAGEMENT]: Failed to cancel #{$order->get_order_number()}", $context );
 						/** @var \WP_Error $result */
-						throw new Exception( $result->get_error_message() );
+						throw new \Exception( $result->get_error_message() );
 					}
 
-					$order->add_order_note( __( 'Payment has been cancelled by order status change.', 'swedbank-pay-payment-menu' ) );
-					Swedbank_Pay()->logger()->info( "[ORDER MANAGEMENT]: Successfully cancelled #{$order->get_order_number()}", $context );
+					$order->add_order_note(
+						__( 'Payment has been cancelled by order status change.', 'swedbank-pay-payment-menu' )
+					);
 
 					break;
 				case 'refunded':
-					$context['action'] = 'refund_order';
-					Swedbank_Pay()->logger()->info( "[ORDER MANAGEMENT]: Trying to refund #{$order->get_order_number()}", $context );
-					$transient_id = "sb_refund_prevent_online_refund_{$order_id}";
-					$refund_id    = get_transient( $transient_id );
+					$refund_id = get_transient( 'sb_refund_prevent_online_refund_' . $order_id );
 					if ( ! empty( $refund_id ) ) {
-						Swedbank_Pay()->logger()->info( "[ORDER MANAGEMENT]: The order {$order->get_order_number()} is flagged as not eligible for online refund.", $context );
-						delete_transient( $transient_id );
+						delete_transient( 'sb_refund_prevent_online_refund_' . $order_id );
+
 						return;
 					}
 
+					$gateway->api->log( WC_Log_Levels::INFO, 'Try to refund...' );
 					$lines  = swedbank_pay_get_available_line_items_for_refund( $order );
 					$result = $gateway->payment_actions_handler->refund_payment(
 						$order,
@@ -557,20 +551,19 @@ class Swedbank_Pay_Admin {
 					);
 					if ( is_wp_error( Swedbank_Pay()->system_report()->request( $result ) ) ) {
 						/** @var \WP_Error $result */
-						throw new Exception( $result->get_error_message() );
+						throw new \Exception( $result->get_error_message() );
 					}
 
-					$order->add_order_note( __( 'Payment has been refunded by order status change.', 'swedbank-pay-payment-menu' ) );
-					Swedbank_Pay()->logger()->info( "[ORDER MANAGEMENT]: Successfully refunded #{$order->get_order_number()}", $context );
+					$order->add_order_note(
+						__( 'Payment has been refunded by order status change.', 'swedbank-pay-payment-menu' )
+					);
 
 					break;
 			}
-		} catch ( Exception $exception ) {
-			$context['error'] = $exception->getMessage();
-			Swedbank_Pay()->logger()->error( "[ORDER MANAGEMENT]: Order status change action error for order #{$order->get_order_number()}: {$exception->getMessage()}", $context );
-			\WC_Admin_Meta_Boxes::add_error( "Order status change action error: {$exception->getMessage()}" );
+		} catch ( \Exception $exception ) {
+			\WC_Admin_Meta_Boxes::add_error( 'Order status change action error: ' . $exception->getMessage() );
 
-			// Rollback status.
+			// Rollback status
 			remove_action(
 				'woocommerce_order_status_changed',
 				__CLASS__ . '::order_status_changed_transaction',
@@ -579,8 +572,7 @@ class Swedbank_Pay_Admin {
 
 			$order->add_order_note(
 				sprintf(
-					// translators: %1$s is the old status, %2$s is the new status, %3$s is the error message.
-					__( 'Order status change "%1$s->%2$s" action error: %3$s', 'swedbank-pay-payment-menu' ),
+					'Order status change "%s->%s" action error: %s',
 					$old_status,
 					$new_status,
 					$exception->getMessage()
@@ -605,7 +597,7 @@ class Swedbank_Pay_Admin {
 			return;
 		}
 
-		if ( ! swedbank_pay_is_payment_swedbank_method( $order->get_payment_method() ) ) {
+		if ( ! in_array( $order->get_payment_method(), Swedbank_Pay_Plugin::PAYMENT_METHODS, true ) ) {
 			return;
 		}
 
@@ -643,7 +635,7 @@ class Swedbank_Pay_Admin {
 	 * @return bool
 	 */
 	public function order_should_render_refunds( $should_render, $order_id, $order ) {
-		if ( ! swedbank_pay_is_payment_swedbank_method( $order->get_payment_method() ) ) {
+		if ( ! in_array( $order->get_payment_method(), Swedbank_Pay_Plugin::PAYMENT_METHODS, true ) ) {
 			return $should_render;
 		}
 

@@ -300,7 +300,7 @@ jQuery(document).ready(function ($) {
                 container: {
                     checkout: "payex_container"
                 },
-                culture: sbie.params.culture,
+                culture: 'sv-SE',
                 onPaymentButtonPressed: sbie.onPaymentButtonPressed,
                 onPaid: sbie.onPaid,
                 onPaymentAttemptFailed: sbie.onPaymentAttemptFailed,

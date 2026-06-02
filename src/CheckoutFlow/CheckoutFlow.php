@@ -51,44 +51,45 @@ abstract class CheckoutFlow {
 	/**
 	 * Prints the payment fields for the handler if needed.
 	 *
-	 * @param string $gateway_id The gateway ID to determine the correct container for the checkout. Defaults to 'payex_checkout' which is the main gateway for the embedded flow, but can be a split payment method ID for split payments.
-	 *
 	 * @return void
 	 */
-	public static function payment_fields( $gateway_id = 'payex_checkout' ) {
+	public static function payment_fields() {
 		$handler = self::get_handler();
-		$handler->payment_fields_content( $gateway_id );
+		$handler->payment_fields_content();
 	}
 
 	/**
 	 * Process the payment depending on the flow that should be used.
 	 *
 	 * @param int $order_id The WooCommerce order id.
-	 * @param string|null $instrument The instrument to use for the payment, e.g. 'CreditCard'.
 	 *
 	 * @throws \Exception If there is an error during the payment processing.
 	 * @return array{redirect?: array|bool|string, result: string, messages?: string}
 	 */
-	public static function process_payment( $order_id, $instrument = null ) {
-		$order = wc_get_order( $order_id );
-		if ( ! $order ) {
-			throw new \Exception( esc_html__( 'Invalid order ID.', 'swedbank-pay-payment-menu' ) );
+	public static function process_payment( $order_id ) {
+		try {
+			$order = wc_get_order( $order_id );
+
+			if ( ! $order ) {
+				throw new \Exception( __( 'Invalid order ID.', 'swedbank-pay-payment-menu' ) );
+			}
+			$handler = self::get_handler( $order );
+
+			Swedbank_Pay()->logger()->info(
+				sprintf(
+					'Processing payment for order %s using %s flow.',
+					$handler->get_order_number( $order ),
+					get_class( $handler )
+				),
+				array(
+					'handler'  => get_class( $handler ),
+					'order_id' => $order->get_id(),
+				)
+			);
+			return $handler->process( $order );
+		} catch ( \Exception $e ) {
+			return self::error_response( $e->getMessage() );
 		}
-
-		$handler = self::get_handler( $order );
-
-		Swedbank_Pay()->logger()->info(
-			sprintf(
-				'[PROCESS PAYMENT]: Processing payment for order #%s using %s flow.',
-				$handler->get_order_number( $order ),
-				get_class( $handler )
-			),
-			array(
-				'handler'  => get_class( $handler ),
-				'order_id' => $order->get_id(),
-			)
-		);
-		return $handler->process( $order, $instrument );
 	}
 
 	/**
@@ -121,21 +122,18 @@ abstract class CheckoutFlow {
 	 * Process the payment for the WooCommerce order.
 	 *
 	 * @param \WC_Order $order The WooCommerce order to be processed.
-	 * @param string|null $instrument The instrument to use for the payment, e.g. 'CreditCard'. This is optional and may not be needed for all flows or gateways.
 	 *
 	 * @throws \Exception If there is an error during the payment processing.
 	 * @return array{redirect: array|bool|string, result: string}
 	 */
-	abstract public function process( $order, $instrument = null );
+	abstract public function process( $order );
 
 	/**
 	 * Output the payment fields content for the handler.
 	 *
-	 * @param string $gateway_id The gateway ID to determine the correct container for the checkout. Defaults to 'payex_checkout' which is the main gateway for the embedded flow, but can be a split payment method ID for split payments.
-	 *
 	 * @return void
 	 */
-	protected function payment_fields_content( $gateway_id = 'payex_checkout' ) {
+	protected function payment_fields_content() {
 		// Default implementation does nothing.
 	}
 

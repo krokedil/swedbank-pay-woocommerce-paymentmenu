@@ -1,22 +1,19 @@
 <?php
-/**
- * Swedbank Pay Payment Gateway Checkout Class.
- *
- * @package SwedbankPay\Checkout\WooCommerce
- */
+
+use Krokedil\Swedbank\Pay\CheckoutFlow\InlineEmbedded;
+use Krokedil\Swedbank\Pay\Utility\BlocksUtility;
 
 defined( 'ABSPATH' ) || exit;
 
+use SwedbankPay\Checkout\WooCommerce\Swedbank_Pay_Api;
+use SwedbankPay\Checkout\WooCommerce\Swedbank_Pay_Instant_Capture;
+use SwedbankPay\Checkout\WooCommerce\Swedbank_Pay_Payment_Actions;
+use SwedbankPay\Checkout\WooCommerce\Swedbank_Pay_Scheduler;
+use Krokedil\Swedbank\Pay\CheckoutFlow\CheckoutFlow;
 use KrokedilSwedbankPayDeps\Krokedil\SettingsPage\SettingsPage;
 use KrokedilSwedbankPayDeps\Krokedil\SettingsPage\Gateway;
-use SwedbankPay\Checkout\WooCommerce\{Swedbank_Pay_Api, Swedbank_Pay_Instant_Capture, Swedbank_Pay_Payment_Actions, Swedbank_Pay_Scheduler};
-use Krokedil\Swedbank\Pay\CheckoutFlow\{CheckoutFlow, InlineEmbedded};
-use Krokedil\Swedbank\Pay\Utility\{BlocksUtility, InstrumentsUtility, SettingsUtility, LogUtility};
-use KrokedilSwedbankPayDeps\SwedbankPay\Api\Service\Paymentorder\V3\Resource\Response\CallbackPayload;
 
 /**
- * Class Swedbank_Pay_Payment_Gateway_Checkout
- *
  * @SuppressWarnings(PHPMD.CamelCaseClassName)
  * @SuppressWarnings(PHPMD.CamelCaseMethodName)
  * @SuppressWarnings(PHPMD.CamelCaseParameterName)
@@ -81,57 +78,36 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 	public $instant_capture = array();
 
 	/**
-	 * Terms & Conditions Url.
-	 *
 	 * @var string
 	 */
 	public $terms_url = '';
 
 	/**
-	 * Automatic order status change to completed after payment.
-	 *
 	 * @var string
 	 */
 	public $autocomplete = 'no';
 
 	/**
-	 * Whether the checkout block is enabled or not, which affects the availability of certain features and settings in the plugin.
-	 *
 	 * @var bool
 	 */
 	public $block_checkout_enabled = false;
 
 	/**
-	 * Checkout flow to use for the payments.
-	 *
 	 * @var string
 	 */
 	public $checkout_flow = 'redirect';
 
 	/**
-	 * Whether separate instruments/payment methods are enabled or not. This is only true if the setting is enabled and the checkout flow is set to redirect, since separate instruments are currently only supported for the redirect flow.
-	 *
-	 * @var bool
-	 */
-	public $separate_instruments_enabled = false;
-
-	/**
-	 * Whether to exclude order lines from the payment request.
-	 *
 	 * @var bool
 	 */
 	public $exclude_order_lines = false;
 
 	/**
-	 * Instance of the Swedbank Pay API client.
-	 *
 	 * @var Swedbank_Pay_Api
 	 */
 	public $api;
 
 	/**
-	 * Instance of the payment actions handler which contains the logic for handling payment actions such as capture and cancel.
-	 *
 	 * @var Swedbank_Pay_Payment_Actions
 	 */
 	public $payment_actions_handler;
@@ -147,7 +123,8 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 		$this->has_fields         = true;
 		$this->method_title       = __( 'Swedbank Pay Payment Menu', 'swedbank-pay-payment-menu' );
 		$this->method_description = __( 'Provides the Swedbank Pay Payment Menu for WooCommerce', 'swedbank-pay-payment-menu' );
-		$this->supports           = array(
+		// $this->icon         = apply_filters( 'woocommerce_swedbank_pay_payments_icon', plugins_url( '/assets/images/checkout.svg', dirname( __FILE__ ) ) );
+		$this->supports = array(
 			'products',
 			'refunds',
 			'subscriptions',
@@ -175,23 +152,21 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 		}
 
 		// Define user set variables.
-		$this->enabled                      = $this->settings['enabled'] ?? 'yes';
-		$this->title                        = $this->settings['title'] ?? '';
-		$this->description                  = $this->settings['description'] ?? '';
-		$this->access_token                 = $this->settings['access_token'] ?? $this->access_token;
-		$this->payee_id                     = $this->settings['payee_id'] ?? $this->payee_id;
-		$this->testmode                     = $this->settings['testmode'] ?? $this->testmode;
-		$this->culture                      = self::locale_to_culture();
-		$this->logo_url                     = $this->settings['logo_url'] ?? $this->logo_url;
-		$this->instant_capture              = $this->settings['instant_capture'] ?? $this->instant_capture;
-		$this->terms_url                    = $this->settings['terms_url'] ?? get_site_url();
-		$this->autocomplete                 = $this->settings['autocomplete'] ?? 'no';
-		$this->exclude_order_lines          = wc_string_to_bool( $this->settings['exclude_order_lines'] ?? false );
-		$this->block_checkout_enabled       = BlocksUtility::is_checkout_block_enabled();
-		$this->checkout_flow                = ! $this->block_checkout_enabled ?
-			( $this->settings['checkout_flow'] ?? 'redirect' ) : 'redirect'; // Use the setting only if the block checkout is not enabled, otherwise force 'redirect'.
-		$this->separate_instruments_enabled = ( 'redirect' === $this->checkout_flow ) ?
-			wc_string_to_bool( $this->settings['enable_separate_instruments'] ?? 'no' ) : false; // Only allow separate instruments if the checkout flow is redirect.
+		$this->enabled                = $this->settings['enabled'] ?? 'yes';
+		$this->title                  = $this->settings['title'] ?? '';
+		$this->description            = $this->settings['description'] ?? '';
+		$this->access_token           = $this->settings['access_token'] ?? $this->access_token;
+		$this->payee_id               = $this->settings['payee_id'] ?? $this->payee_id;
+		$this->testmode               = $this->settings['testmode'] ?? $this->testmode;
+		$this->culture                = $this->settings['culture'] ?? $this->culture;
+		$this->logo_url               = $this->settings['logo_url'] ?? $this->logo_url;
+		$this->instant_capture        = $this->settings['instant_capture'] ?? $this->instant_capture;
+		$this->terms_url              = $this->settings['terms_url'] ?? get_site_url();
+		$this->autocomplete           = $this->settings['autocomplete'] ?? 'no';
+		$this->exclude_order_lines    = wc_string_to_bool( $this->settings['exclude_order_lines'] ?? false );
+		$this->block_checkout_enabled = BlocksUtility::is_checkout_block_enabled();
+		$this->checkout_flow          = $this->block_checkout_enabled ?
+			( $this->settings['checkout_flow'] ?? 'redirect' ) : 'redirect'; // Use the setting only if the block checkout is enabled, otherwise force 'redirect'.
 
 		// TermsOfServiceUrl contains unsupported scheme value http in Only https supported.
 		if ( ! filter_var( $this->terms_url, FILTER_VALIDATE_URL ) ) {
@@ -223,32 +198,6 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 	}
 
 	/**
-	 * Convert WordPress locale to Swedbank Pay culture code.
-	 *
-	 * @return string Swedbank Pay culture code, e.g. 'sv-SE'.
-	 */
-	public static function locale_to_culture() {
-		$locale = get_locale();
-
-		// Format exceptions for locales that do not match the expected format, e.g. fi_FI for Finnish in Finland.
-		switch ( $locale ) {
-			case 'fi':
-				$locale = 'fi_FI';
-				break;
-			case 'et':
-				$locale = 'et_EE';
-				break;
-			case 'lv':
-				$locale = 'lv_LV';
-				break;
-			default:
-				break;
-		}
-
-		return substr( str_replace( '_', '-', $locale ), 0, 5 );
-	}
-
-	/**
 	 * Initialise Settings Form Fields
 	 *
 	 * @return string|void
@@ -269,19 +218,19 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 		}
 
 		$this->form_fields = array(
-			'enabled'                     => array(
+			'enabled'              => array(
 				'title'   => __( 'Enable/Disable', 'swedbank-pay-payment-menu' ),
 				'type'    => 'checkbox',
 				'label'   => __( 'Enable plugin', 'swedbank-pay-payment-menu' ),
 				'default' => 'yes',
 			),
-			'testmode'                    => array(
+			'testmode'             => array(
 				'title'   => __( 'Test Mode', 'swedbank-pay-payment-menu' ),
 				'type'    => 'checkbox',
 				'label'   => __( 'Enable Swedbank Pay Test Mode', 'swedbank-pay-payment-menu' ),
 				'default' => $this->testmode,
 			),
-			'title'                       => array(
+			'title'                => array(
 				'title'       => __( 'Title', 'swedbank-pay-payment-menu' ),
 				'type'        => 'text',
 				'description' => __(
@@ -290,7 +239,7 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 				),
 				'default'     => __( 'Swedbank Pay', 'swedbank-pay-payment-menu' ),
 			),
-			'description'                 => array(
+			'description'          => array(
 				'title'       => __( 'Description', 'swedbank-pay-payment-menu' ),
 				'type'        => 'text',
 				'description' => __(
@@ -299,10 +248,10 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 				),
 				'default'     => __( 'Swedbank Pay', 'swedbank-pay-payment-menu' ),
 			),
-			'payee_id'                    => array(
+			'payee_id'             => array(
 				'title'             => __( 'Payee Id', 'swedbank-pay-payment-menu' ),
 				'type'              => 'text',
-				'description'       => /* translators: 1: url */ sprintf( __( 'Your Payee ID can be found in our Merchant-portal <a href="%1$s" target="_blank">here</a>', 'swedbank-pay-payment-menu' ), $portal_url ),
+				'description'       => /* translators: 1: url */                        sprintf( __( 'Your Payee ID can be found in our Merchant-portal <a href="%1$s" target="_blank">here</a>', 'swedbank-pay-payment-menu' ), $portal_url ),
 				'default'           => $this->payee_id,
 				'custom_attributes' => array(
 					'required' => 'required',
@@ -315,10 +264,10 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 					return $value;
 				},
 			),
-			'access_token'                => array(
+			'access_token'         => array(
 				'title'             => __( 'Access Token', 'swedbank-pay-payment-menu' ),
 				'type'              => 'text',
-				'description'       => /* translators: 1: url */ sprintf( __( 'Your Access Token can be found in our Merchant-portal <a href="%1$s" target="_blank">here</a>', 'swedbank-pay-payment-menu' ), $portal_url ),
+				'description'       => /* translators: 1: url */                        sprintf( __( 'Your Access Token can be found in our Merchant-portal <a href="%1$s" target="_blank">here</a>', 'swedbank-pay-payment-menu' ), $portal_url ),
 				'default'           => $this->access_token,
 				'custom_attributes' => array(
 					'required' => 'required',
@@ -331,30 +280,23 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 					return $value;
 				},
 			),
-			'subsite'                     => array(
-				'title'             => __( 'Subsite', 'swedbank-pay-payment-menu' ),
-				'type'              => 'text',
-				'description'       => __(
-					'Optional identifier for split settlement through Swedbank Pay, used to allocate payments to different business units under your Payee ID. Must be agreed with Swedbank Pay. Max 40 characters, alphanumeric.',
+			'culture'              => array(
+				'title'       => __( 'Language', 'swedbank-pay-payment-menu' ),
+				'type'        => 'select',
+				'options'     => array(
+					'da-DK' => 'Danish',
+					'en-US' => 'English',
+					'fi-FI' => 'Finnish',
+					'nb-NO' => 'Norway',
+					'sv-SE' => 'Swedish',
+				),
+				'description' => __(
+					'Language of pages displayed by Swedbank Pay during payment.',
 					'swedbank-pay-payment-menu'
 				),
-				'sanitize_callback' => function ( $value ) {
-					$value = trim( $value );
-
-					if ( ! empty( $value ) ) {
-						if ( strlen( $value ) > 40 ) {
-							throw new Exception( esc_html__( 'Subsite can only contain a maximum of 40 characters.', 'swedbank-pay-payment-menu' ) );
-						}
-
-						if ( ! preg_match( '/^[A-Za-z0-9]+$/', $value ) ) {
-							throw new Exception( esc_html__( 'Subsite can only contain letters and numbers.', 'swedbank-pay-payment-menu' ) );
-						}
-					}
-
-					return $value;
-				},
+				'default'     => $this->culture,
 			),
-			'instant_capture'             => array(
+			'instant_capture'      => array(
 				'title'          => __( 'Instant Capture', 'swedbank-pay-payment-menu' ),
 				'description'    => __( 'Capture payment automatically depends on the product type. It\'s working when Auto Capture Intent is off.', 'swedbank-pay-payment-menu' ),
 				'type'           => 'multiselect',
@@ -367,13 +309,13 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 				'select_buttons' => true,
 				'default'        => $this->instant_capture,
 			),
-			'terms_url'                   => array(
+			'terms_url'            => array(
 				'title'       => __( 'Terms & Conditions Url', 'swedbank-pay-payment-menu' ),
 				'type'        => 'text',
 				'description' => __( 'Terms & Conditions Url. HTTPS is required.', 'swedbank-pay-payment-menu' ),
 				'default'     => get_site_url(),
 			),
-			'logo_url'                    => array(
+			'logo_url'             => array(
 				'title'             => __( 'Logo Url', 'swedbank-pay-payment-menu' ),
 				'type'              => 'text',
 				'description'       => __( 'The URL that will be used for showing the customer logo. Must be a picture with maximum 50px height and 400px width. Require https.', 'swedbank-pay-payment-menu' ),
@@ -391,20 +333,20 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 					return $value;
 				},
 			),
-			'autocomplete'                => array(
+			'autocomplete'         => array(
 				'title'   => __( 'Automatic order status', 'swedbank-pay-payment-menu' ),
 				'type'    => 'checkbox',
 				'label'   => __( 'Set order in completed status immediately after payment', 'swedbank-pay-payment-menu' ),
 				'default' => $this->autocomplete,
 			),
-			'exclude_order_lines'         => array(
+			'exclude_order_lines'  => array(
 				'title'       => __( 'Exclude Order Lines', 'swedbank-pay-payment-menu' ),
 				'type'        => 'checkbox',
 				'label'       => __( 'Exclude order lines from the payment request', 'swedbank-pay-payment-menu' ),
 				'description' => __( 'Enable this setting to prevent order line data from being sent.', 'swedbank-pay-payment-menu' ),
 				'default'     => 'no',
 			),
-			'checkout_flow'               => array(
+			'checkout_flow'        => array(
 				'title'       => __( 'Checkout Flow', 'swedbank-pay-payment-menu' ),
 				'type'        => 'select',
 				'options'     => $flow_options,
@@ -415,60 +357,32 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 				'default'     => 'redirect',
 				'disabled'    => $this->block_checkout_enabled,
 			),
-			'order_management'            => array(
+			'order_management'     => array(
 				'title' => __( 'Order management', 'swedbank-pay-payment-menu' ),
 				'type'  => 'title',
 			),
-			'enable_order_capture'        => array(
+			'enable_order_capture' => array(
 				'title'   => __( 'Capture on status change', 'swedbank-pay-payment-menu' ),
 				'type'    => 'checkbox',
 				'label'   => __( 'Capture payment on order status change to Completed', 'swedbank-pay-payment-menu' ),
 				'default' => 'yes',
 			),
-			'enable_order_cancel'         => array(
+			'enable_order_cancel'  => array(
 				'title'   => __( 'Cancel on status change', 'swedbank-pay-payment-menu' ),
 				'type'    => 'checkbox',
 				'label'   => __( 'Cancel payment on order status change to Cancelled', 'swedbank-pay-payment-menu' ),
 				'default' => 'yes',
 			),
 
-			'separate_instruments'        => array(
-				'title' => __( 'Separate Instruments', 'swedbank-pay-payment-menu' ),
-				'type'  => 'title',
-			),
-
-			// TODO: Place this somewhere more logical before release. And add JS to hide/show the individual instrument settings based on the main setting.
-			'enable_separate_instruments' => array(
-				'title'       => __( 'Enable separate instruments', 'swedbank-pay-payment-menu' ),
-				'type'        => 'checkbox',
-				'label'       => __( 'Enable separate instruments/payment methods instead of payment menu', 'swedbank-pay-payment-menu' ),
-				'description' => __( 'Ensure the instruments selected below are also active in the Swedbank Pay Merchant Portal. If a payment method is enabled here but not in your Swedbank Pay account, customers will encounter an error at checkout.', 'swedbank-pay-payment-menu' ),
-				'default'     => 'no',
-				'class'       => 'instrument-setting-separate-instruments',
-			),
 		);
-
-		foreach ( InstrumentsUtility::get_instruments() as $key => $instrument ) {
-			$this->form_fields[ "enable_instrument_$key" ] = array(
-				// translators: %s is the name of the payment method/instrument.
-				'title'   => sprintf( __( 'Enable %s', 'swedbank-pay-payment-menu' ), $instrument['name'] ),
-				'type'    => 'checkbox',
-				// translators: %s is the name of the payment method/instrument.
-				'label'   => sprintf( __( 'Enable %s as a separate payment method', 'swedbank-pay-payment-menu' ), $instrument['name'] ),
-				'default' => 'no',
-				'class'   => 'instrument-setting instrument-setting-' . $key,
-			);
-		}
 
 		// Extend with settings with logging option.
 		$this->form_fields = Swedbank_Pay()->logger()->add_settings_fields( $this->form_fields );
 	}
 
 	/**
-	 * Generate advanced settings HTML.
-	 *
-	 * @param string $key The key of the setting field.
-	 * @param mixed  $value The value of the setting field.
+	 * @param $key
+	 * @param $value
 	 *
 	 * @return false|string
 	 * @SuppressWarnings(PHPMD.UnusedFormalParameter)
@@ -509,11 +423,6 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 	 * @return bool
 	 */
 	private function check_availability() {
-		// If the split instruments setting is enabled, the main gateway should not be available in the checkout.
-		if ( SettingsUtility::is_separate_instruments_enabled() ) {
-			return false;
-		}
-
 		return wc_string_to_bool( $this->enabled );
 	}
 
@@ -558,20 +467,6 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 	 * @return bool was anything saved?
 	 */
 	public function process_admin_options() {
-		// WC_Settings_API ignores sanitize_callback — run them manually before saving.
-		foreach ( $this->get_form_fields() as $key => $field ) {
-			if ( empty( $field['sanitize_callback'] ) || ! is_callable( $field['sanitize_callback'] ) ) {
-				continue;
-			}
-			$field_key = $this->get_field_key( $key );
-			$value     = isset( $_POST[ $field_key ] ) ? wp_unslash( $_POST[ $field_key ] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
-			try {
-				call_user_func( $field['sanitize_callback'], $value );
-			} catch ( \Exception $e ) {
-				WC_Admin_Settings::add_error( $e->getMessage() );
-			}
-		}
-
 		$result = parent::process_admin_options();
 
 		// Reload settings.
@@ -609,14 +504,7 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 			return;
 		}
 
-		$context = array(
-			'action'           => 'thankyou_page',
-			'order_id'         => $order_id,
-			'order_number'     => $order->get_order_number(),
-			'payment_order_id' => $order->get_meta( '_payex_paymentorder_id' ),
-		);
-
-		Swedbank_Pay()->logger()->info( "[THANK YOU]: Processing thank you page for order #{$context['order_number']}.", $context );
+		$this->api->log( WC_Log_Levels::INFO, __METHOD__, array( $order_id ) );
 		$is_finalized = $order->get_meta( '_payex_finalized' ); // Checks if the order has already been processed.
 		if ( ! empty( $is_finalized ) ) {
 			return;
@@ -640,8 +528,7 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 			$order->save();
 
 		} else {
-			LogUtility::$title = "[THANK YOU]: Fetch payment info for finalizing order #{$order->get_order_number()}";
-			$response          = $gateway->api->request( 'GET', "$payment_order_id/paid" );
+			$response = $gateway->api->request( 'GET', "$payment_order_id/paid" );
 			if ( ! is_wp_error( $response ) ) {
 				$order->payment_complete( $response['paid']['number'] );
 				$order->add_order_note( __( 'Payment completed successfully.', 'swedbank-pay-payment-menu' ) );
@@ -677,7 +564,7 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 	/**
 	 * Process Payment
 	 *
-	 * @param int $order_id The WooCommerce order ID.
+	 * @param int $order_id
 	 *
 	 * @return array|false
 	 */
@@ -689,8 +576,7 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 	 * IPN Callback
 	 *
 	 * @return void
-	 * @throws \Exception Throws an exception if the incoming data is invalid or if there is an error during processing.
-	 * @throws \Throwable Throws a throwable if there is an error during the creation of the CallbackPayload object.
+	 * @throws \Exception
 	 * @SuppressWarnings(PHPMD.CyclomaticComplexity)
 	 * @SuppressWarnings(PHPMD.NPathComplexity)
 	 * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
@@ -699,17 +585,15 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 	public function return_handler() {
 		$raw_body = wp_kses_post( sanitize_text_field( file_get_contents( 'php://input' ) ) );  // WPCS: input var ok, CSRF ok.
 
-		Swedbank_Pay()->logger()->info( "[IPN]: Incoming Callback. Post data: {$raw_body}" );
+		$this->api->log(
+			WC_Log_Levels::INFO,
+			sprintf( 'Incoming Callback. Post data: %s', wp_json_encode( $raw_body ) )
+		);
 
-		try {
-			$payload = new CallbackPayload( $raw_body );
-		} catch ( \Throwable $e ) {
+		// Decode raw body.
+		$data = json_decode( $raw_body, true );
+		if ( empty( $data ) ) {
 			throw new Exception( 'Invalid webhook data' );
-		}
-
-		$payment_order = $payload->getPaymentOrder();
-		if ( ! $payment_order || ! $payment_order->getId() ) {
-			throw new Exception( 'Error: Invalid paymentOrder value' );
 		}
 
 		try {
@@ -733,14 +617,14 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 				}
 			}
 
-			$context = array(
-				'order_id'         => $order->get_id(),
-				'order_number'     => $order->get_order_number(),
-				'payment_order_id' => $payment_order->getId(),
-				'payment_number'   => $payment_order->getNumber(),
-				'instrument'       => $payment_order->getInstrument(),
-				'order_reference'  => $payload->getOrderReference(),
-			);
+			// Validate fields.
+			if ( ! isset( $data['paymentOrder'] ) || ! isset( $data['paymentOrder']['id'] ) ) {
+				throw new \Exception( 'Error: Invalid paymentOrder value' );
+			}
+
+			if ( ! isset( $data['transaction'] ) || ! isset( $data['transaction']['number'] ) ) {
+				throw new \Exception( 'Error: Invalid transaction number' );
+			}
 
 			// Schedule the payment for later processing.
 			$schedule_id = as_schedule_single_action(
@@ -753,14 +637,20 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 			);
 
 			if ( 0 === $schedule_id ) {
-				Swedbank_Pay()->logger()->error( "[IPN]: Failed to schedule a task for processing the payment. Order #{$context['order_number']}, Payment number: {$context['payment_number']}.", $context );
+				$this->api->log(
+					WC_Log_Levels::ERROR,
+					sprintf( 'Error: Unable to schedule a task for %s', $this->id )
+				);
 				throw new \Exception( 'Unable to schedule a task.' );
 			}
 
-			Swedbank_Pay()->logger()->info( "[IPN]: Callback scheduled for processing. Order #{$context['order_number']}, Payment number: {$context['payment_number']}, Schedule ID: {$schedule_id}.", $context );
+			$this->api->log(
+				WC_Log_Levels::INFO,
+				sprintf( 'Incoming Callback: payment scheduled as %s. Transaction ID: %s', $schedule_id, $data['transaction']['number'] )
+			);
 		} catch ( \Exception $e ) {
-			$context['error'] = $e->getMessage();
-			Swedbank_Pay()->logger()->error( sprintf( '[IPN]: Callback processing failed. Order %s, Payment number: %s. Error: %s', $context['order_number'] ?? 'N/A', $context['payment_number'] ?? 'N/A', $context['error'] ), $context );
+			$this->api->log( WC_Log_Levels::INFO, sprintf( 'Incoming Callback: %s', $e->getMessage() ) );
+
 			return;
 		}
 	}
@@ -768,7 +658,7 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 	/**
 	 * Get the order for a inline embedded checkout.
 	 *
-	 * @throws Exception Throws an exception if the order cannot be loaded or if the payee reference is invalid.
+	 * @throws Exception
 	 * @return \WC_Order|bool
 	 */
 	public function get_inline_embedded_callback_order() {
@@ -903,13 +793,12 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 			$payment_order_id = $order->get_meta( '_payex_paymentorder_id' );
 			if ( ! empty( $payment_order_id ) ) {
 				// Fetch payment info.
-				LogUtility::$title = "[GATEWAY]: Fetch payment info for payment method title #{$order->get_order_number()}";
-				$result            = $this->api->request( 'GET', $payment_order_id . '/paid' );
+				$result = $this->api->request( 'GET', $payment_order_id . '/paid' );
 				if ( is_wp_error( Swedbank_Pay()->system_report()->request( $result ) ) ) {
 					// Request failed.
 					return $value;
 				}
-				$instrument = $result['paid']['instrument'] ?? '';
+				$instrument = $result['paid']['instrument'];
 				$order->update_meta_data( '_swedbank_pay_payment_instrument', $instrument );
 				$order->save();
 
@@ -952,17 +841,7 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 	 * @return bool
 	 */
 	public function is_editable( $is_editable, $order ) {
-		if ( $order->get_payment_method() !== $this->id ) {
-			return $is_editable;
-		}
-
-		// Allow editing if the order is a subscription and is editable.
-		if ( class_exists( 'WC_Subscription' ) && $order instanceof WC_Subscription && $is_editable ) {
-			return true;
-		}
-
-		// Otherwise, do not allow editing for orders paid with this gateway.
-		return false;
+		return $order->get_payment_method() === $this->id ? false : $is_editable;
 	}
 
 	/**
