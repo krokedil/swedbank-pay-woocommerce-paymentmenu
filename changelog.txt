@@ -1,3 +1,30 @@
+Version 4.4.2
+* Fix           - Resolved an "undefined array key" PHP warning.
+* Tweak         - Removed the plugin's dependency on the PHP BCMath extension.
+* Tweak         - Removed the "Language" setting. The checkout language is now automatically derived from the current WordPress locale.
+
+Version 4.4.1
+* Fix           - Fixed an issue where automatic capture was sometimes used even when disabled in the plugin settings.
+* Fix           - Corrected the Trustly label on the settings page.
+* Tweak         - Added the 'Payee Reference' field to the admin order metabox.
+
+Version 4.4.0
+* Feature       - Added support for splitting the payment methods from Swedbank Pay into separate payment methods in WooCommerce. Currently only supported for the redirect flow.
+* Fix           - The selected language setting is now also used for the 'Seamless Menu' checkout flow.
+* Tweak         - Changed the default API base URL from payex.com to swedbankpay.com. Use the 'swedbank_pay_replace_base_url' filter to opt out.
+
+Version 4.3.4
+* Enhancement   - Added support for Estonian, Latvian, and Lithuanian.
+* Enhancement   - Improved and extended logging, including support for custom log titles, making entries easier to identify.
+* Fix           - Phone number input at checkout is now properly sanitized.
+
+Version 4.3.3
+* Enhancement   - Client information is now sent with payment orders to set platform name, integration module name and version for the payment.
+* Enhancement   - Improved error handling by allowing exceptions to propagate to WooCommerce.
+* Fix           - Resolved a fatal error that could occur on the 'thank you' page.
+* Fix           - When a customer cancels payment for a 'pay for order' order, they are now correctly redirected back to the order payment page.
+* Tweak         - Enabled editing of orders that include WooCommerce Subscriptions.
+
 Version 4.3.2
 * Enhancement - Updated the code to be inline with WordPress coding standards.
 * Enhancement - Removed the custom database table for transactions, since it was not being used for any functionality other then storing data.

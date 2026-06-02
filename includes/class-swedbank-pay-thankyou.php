@@ -3,6 +3,8 @@
 
 namespace SwedbankPay\Checkout\WooCommerce;
 
+use Krokedil\Swedbank\Pay\Utility\LogUtility;
+
 defined( 'ABSPATH' ) || exit;
 
 class Swedbank_Thankyou {
@@ -37,7 +39,7 @@ class Swedbank_Thankyou {
 				return $located;
 			}
 
-			if ( ! in_array( $order->get_payment_method(), Swedbank_Pay_Plugin::PAYMENT_METHODS, true ) ) {
+			if ( ! swedbank_pay_is_payment_swedbank_method( $order->get_payment_method() ) ) {
 				return $located;
 			}
 
@@ -68,11 +70,19 @@ class Swedbank_Thankyou {
 		$order_key = filter_input( INPUT_GET, 'key', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 
 		$order = wc_get_order( $order_id );
-		if ( empty( $order ) || ! $order->get_id() || ! $order->key_is_valid( $order_key ) ) {
+		if ( empty( $order ) ) {
 			return;
 		}
 
-		if ( ! in_array( $order->get_payment_method(), Swedbank_Pay_Plugin::PAYMENT_METHODS, true ) ) {
+		if ( ! swedbank_pay_is_payment_swedbank_method( $order->get_payment_method() ) ) {
+			return;
+		}
+
+		if ( empty( $order_key ) || ! $order->key_is_valid( $order_key ) ) {
+			global $wp;
+			$current_url = home_url( add_query_arg( $_GET, $wp->request ) );
+			Swedbank_Pay()->logger()->warning( "[THANK YOU]: Invalid order key on thank you page for order #{$order->get_order_number()}. URL: {$current_url}" );
+
 			return;
 		}
 
@@ -128,9 +138,18 @@ class Swedbank_Thankyou {
 			wp_send_json_error( 'Invalid payment' );
 		}
 
-		$gateway = swedbank_pay_get_payment_method( $order );
-		$result  = $gateway->api->request( 'GET', $payment_id );
+		$context = array(
+			'order_id'         => $order_id,
+			'order_number'     => $order->get_order_number(),
+			'payment_order_id' => $payment_id,
+		);
+
+		$gateway           = swedbank_pay_get_payment_method( $order );
+		LogUtility::$title = "[AJAX PAYMENT STATUS]: Check payment status for order #{$order->get_order_number()}";
+		$result            = $gateway->api->request( 'GET', $payment_id );
 		if ( is_wp_error( Swedbank_Pay()->system_report()->request( $result ) ) ) {
+			$context['error'] = join( '; ', $result->get_error_messages() );
+			Swedbank_Pay()->logger()->error( "[AJAX PAYMENT STATUS]: Failed to check payment status for order #{$order->get_order_number()}", $context );
 			wp_send_json_error( 'Failed to get payment status' );
 		}
 
@@ -154,8 +173,12 @@ class Swedbank_Thankyou {
 				break;
 			default:
 				// Check in `failedAttempts`.
-				$result = $gateway->api->request( 'GET', $payment_id . '/failedAttempts' );
+				LogUtility::$title = "[AJAX PAYMENT STATUS]: Check failed attempts for order #{$order->get_order_number()}";
+				$result            = $gateway->api->request( 'GET', $payment_id . '/failedAttempts' );
 				if ( is_wp_error( Swedbank_Pay()->system_report()->request( $result ) ) ) {
+					$context['error'] = join( '; ', $result->get_error_messages() );
+					Swedbank_Pay()->logger()->error( "[AJAX PAYMENT STATUS]: Failed to check failed attempts for order #{$order->get_order_number()}", $context );
+
 					wp_send_json_success(
 						array(
 							'state'   => 'failed',
