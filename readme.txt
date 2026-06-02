@@ -5,8 +5,8 @@ Requires at least: 5.3
 Tested up to: 6.9
 Requires PHP: 7.4
 WC requires at least: 5.5.1
-WC tested up to: 10.5.1
-Stable tag: 4.3.2
+WC tested up to: 10.8.1
+Stable tag: 4.5.0
 License: Apache License 2.0
 License URI: http://www.apache.org/licenses/LICENSE-2.0
 
@@ -95,6 +95,37 @@ You are now done with configuring our plugin.
 Please update to version 1.2.0.
 
 == Changelog ==
+= 2026.06.02    - version 4.5.0 =
+* Feature       - Added a 'Subsite' setting for split settlement with Swedbank Pay. Requires a prior agreement with Swedbank Pay.
+* Fix           - Fixed an issue where error messages were not shown on the settings page.
+
+= 2026.05.26    - version 4.4.2 =
+* Fix           - Resolved an "undefined array key" PHP warning.
+* Tweak         - Removed the plugin's dependency on the PHP BCMath extension.
+* Tweak         - Removed the "Language" setting. The checkout language is now automatically derived from the current WordPress locale.
+
+= 2026.04.27    - version 4.4.1 =
+* Fix           - Fixed an issue where automatic capture was sometimes used even when disabled in the plugin settings.
+* Fix           - Corrected the Trustly label on the settings page.
+* Tweak         - Added the 'Payee Reference' field to the admin order metabox.
+
+= 2026.03.23    - version 4.4.0 =
+* Feature       - Added support for splitting the payment methods from Swedbank Pay into separate payment methods in WooCommerce. Currently only supported for the redirect flow.
+* Fix           - The selected language setting is now also used for the 'Seamless Menu' checkout flow.
+* Tweak         - Changed the default API base URL from payex.com to swedbankpay.com. Use the 'swedbank_pay_replace_base_url' filter to opt out.
+
+= 2026.03.16    - version 4.3.4 =
+* Enhancement   - Added support for Estonian, Latvian, and Lithuanian.
+* Enhancement   - Improved and extended logging, including support for custom log titles, making entries easier to identify.
+* Fix           - Phone number input at checkout is now properly sanitized.
+
+= 2026.03.09    - version 4.3.3 =
+* Enhancement   - Client information is now sent with payment orders to set platform name, integration module name and version for the payment.
+* Enhancement   - Improved error handling by allowing exceptions to propagate to WooCommerce.
+* Fix           - Resolved a fatal error that could occur on the 'thank you' page.
+* Fix           - When a customer cancels payment for a 'pay for order' order, they are now correctly redirected back to the order payment page.
+* Tweak         - Enabled editing of orders that include WooCommerce Subscriptions.
+
 = 2026.02.11    - version 4.3.2 =
 * Enhancement   - Updated the code to be inline with WordPress coding standards.
 * Enhancement   - Removed the custom database table for transactions, since it was not being used for any functionality other then storing data.
