@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "fe3c272d76017ec66d9600bf104ddfe6",
+    "content-hash": "9aa3984790e8c15c44209df01cfc3ca0",
     "packages": [
         {
             "name": "krokedil/settings-page",
-            "version": "1.3.4",
+            "version": "dev-develop-no-helpscout-beacon",
             "source": {
                 "type": "git",
-                "url": "https://github.com/krokedil/settings-page.git",
-                "reference": "2ebd903fc608206cf6fdd414a74c760a282e8159"
+                "url": "git@github.com:krokedil/settings-page.git",
+                "reference": "73002425ca9c0c4e45d25f9b847547b5388cc9c1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/krokedil/settings-page/zipball/2ebd903fc608206cf6fdd414a74c760a282e8159",
-                "reference": "2ebd903fc608206cf6fdd414a74c760a282e8159",
+                "url": "https://api.github.com/repos/krokedil/settings-page/zipball/73002425ca9c0c4e45d25f9b847547b5388cc9c1",
+                "reference": "73002425ca9c0c4e45d25f9b847547b5388cc9c1",
                 "shasum": ""
             },
             "require-dev": {
@@ -45,18 +45,14 @@
                 }
             ],
             "description": "A package to help setup settings pages in WordPress and WooCommerce for Krokedil plugins to add the Addons and Support tabs",
-            "support": {
-                "source": "https://github.com/krokedil/settings-page/tree/1.3.4",
-                "issues": "https://github.com/krokedil/settings-page/issues"
-            },
-            "time": "2026-04-23T19:14:17+00:00"
+            "time": "2026-06-11T16:30:32+00:00"
         },
         {
             "name": "krokedil/support",
             "version": "1.0.2",
             "source": {
                 "type": "git",
-                "url": "https://github.com/krokedil/support.git",
+                "url": "git@github.com:krokedil/support.git",
                 "reference": "99059b1b27cc4ed7667c1d04968aec45413fe533"
             },
             "dist": {
@@ -101,10 +97,6 @@
                 }
             ],
             "description": "The support library allows you to extend your plugin with logging that can be optionally toggled through your plugin settings, generate an entry in the system report from your plugin settings, and report issues to the system report.",
-            "support": {
-                "source": "https://github.com/krokedil/support/tree/1.0.2",
-                "issues": "https://github.com/krokedil/support/issues"
-            },
             "time": "2025-10-08T12:47:46+00:00"
         },
         {
@@ -418,15 +410,17 @@
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "krokedil/settings-page": 20
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
         "php": ">=7.4"
     },
-    "platform-dev": {},
+    "platform-dev": [],
     "platform-overrides": {
         "php": "7.4"
     },
-    "plugin-api-version": "2.9.0"
+    "plugin-api-version": "2.6.0"
 }
