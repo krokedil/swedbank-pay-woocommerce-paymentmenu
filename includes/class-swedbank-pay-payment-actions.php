@@ -401,21 +401,30 @@ class Swedbank_Pay_Payment_Actions {
 			return $result;
 		}
 
-		$transaction_id = $result['number'];
+		$is_pending = ! empty( $result['pending'] );
 
-		$order->add_order_note(
-			\sprintf(
-			/* translators: 1: transaction 2: state 3: reason */                __(
-				'Refund process has been executed from order admin. Transaction ID: %1$s. State: %2$s. Reason: %3$s', //phpcs:ignore
-				'swedbank-pay-payment-menu' //phpcs:ignore
-			), //phpcs:ignore
-				$transaction_id,
-				$result['state'],
-				empty( $reason ) ? '-' : $reason
-			)
-		);
+		if ( ! $is_pending ) {
+			$transaction_id = $result['number'];
+
+			$order->add_order_note(
+				\sprintf(
+				/* translators: 1: transaction 2: state 3: reason */                    __(
+					'Refund process has been executed from order admin. Transaction ID: %1$s. State: %2$s. Reason: %3$s', //phpcs:ignore
+					'swedbank-pay-payment-menu' //phpcs:ignore
+				), //phpcs:ignore
+					$transaction_id,
+					$result['state'],
+					empty( $reason ) ? '-' : $reason
+				)
+			);
+		}
 
 		$this->save_refunded_items( $order, $lines );
+
+		// Keep the refunded lines on the pending entry, so they can be rolled back if the reversal fails.
+		if ( $is_pending ) {
+			Swedbank_Pay()->async_reversal()->set_pending_field( $order, $result['payeeReference'], 'lines', $lines );
+		}
 
 		// Create Credit Memo.
 		if ( $create_credit_memo ) {
@@ -434,6 +443,11 @@ class Swedbank_Pay_Payment_Actions {
 					'restock_items'  => true,
 				)
 			);
+
+			if ( ! is_wp_error( $refund ) && $is_pending ) {
+				Swedbank_Pay()->async_reversal()->set_pending_field( $order, $result['payeeReference'], 'refund_id', $refund->get_id() );
+			}
+
 			if ( is_wp_error( $refund ) ) {
 				$context['error'] = join( '; ', $refund->get_error_messages() );
 				Swedbank_Pay()->logger()->error(
