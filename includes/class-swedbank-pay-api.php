@@ -1454,7 +1454,9 @@ class Swedbank_Pay_Api {
 	 *
 	 * @param WC_Order $order The order to check.
 	 *
-	 * @return WP_Error|false WP_Error when a reversal is still pending, false otherwise.
+	 * @return WP_Error|false `pending_reversal` when a reversal is still awaiting confirmation,
+	 *                        `pending_reversal_check_failed` when its status could not be
+	 *                        verified, false when nothing is pending.
 	 */
 	public function maybe_block_pending_reversal( WC_Order $order ) {
 		$async_reversal = Swedbank_Pay()->async_reversal();
@@ -1463,10 +1465,24 @@ class Swedbank_Pay_Api {
 		}
 
 		// Try to resolve the pending reversal(s) before blocking.
-		$async_reversal->check_pending_reversals( $order );
+		$recheck = $async_reversal->check_pending_reversals( $order );
 
 		if ( ! $async_reversal->has_pending( $order ) ) {
 			return false;
+		}
+
+		// Still pending, but distinguish the two reasons: waiting on Swedbank Pay is not the
+		// same as being unable to ask them. Both block the operation, since the outcome is
+		// unknown either way, but the merchant should be told which it is.
+		if ( is_wp_error( $recheck ) ) {
+			return new WP_Error(
+				'pending_reversal_check_failed',
+				sprintf(
+					// translators: %s: the error reported while checking the reversal.
+					__( 'A refund on this order is awaiting confirmation from Swedbank Pay, and its status could not be verified: %s. Please try again in a moment.', 'swedbank-pay-payment-menu' ),
+					$recheck->get_error_message()
+				)
+			);
 		}
 
 		return new WP_Error(
