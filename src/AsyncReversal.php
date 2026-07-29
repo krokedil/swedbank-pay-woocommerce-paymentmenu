@@ -91,7 +91,7 @@ class AsyncReversal {
 			return false;
 		}
 
-		as_schedule_single_action(
+		$action_id = as_schedule_single_action(
 			time() + $delays[ $attempt ],
 			self::RECHECK_HOOK,
 			array(
@@ -99,6 +99,22 @@ class AsyncReversal {
 				'attempt'  => $attempt,
 			)
 		);
+
+		// Action Scheduler returns 0 when it could not store the action. Reporting that as a
+		// success would retire the safety net without telling anyone, leaving the reversal
+		// pending forever, so treat it as a failure and let the caller escalate instead.
+		if ( 0 === $action_id ) {
+			Swedbank_Pay()->logger()->error(
+				"[ASYNC REVERSAL]: Failed to schedule recheck attempt {$attempt} for order #{$order->get_order_number()}.",
+				array(
+					'action'   => 'schedule_recheck',
+					'order_id' => $order->get_id(),
+					'attempt'  => $attempt,
+				)
+			);
+
+			return false;
+		}
 
 		return true;
 	}
@@ -240,7 +256,10 @@ class AsyncReversal {
 			)
 		);
 
-		// Safety net in case the payee callback never arrives.
+		// Safety net in case the payee callback never arrives. A failure here is logged by
+		// schedule_recheck() and left non-fatal on purpose: the reversal has been accepted, the
+		// callback is still the primary route, and maybe_block_pending_reversal() re-checks on
+		// the merchant's next payment action regardless.
 		$this->schedule_recheck( $order, 0 );
 
 		Swedbank_Pay()->logger()->info( "[ASYNC REVERSAL]: Reversal accepted asynchronously (HTTP 202) for order #{$order->get_order_number()}. Awaiting confirmation via callback.", $context );
