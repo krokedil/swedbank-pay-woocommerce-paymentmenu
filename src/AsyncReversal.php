@@ -294,31 +294,36 @@ class AsyncReversal {
 		}
 
 		$confirmed = false;
-		foreach ( $result['financialTransactions']['financialTransactionsList'] ?? array() as $transaction ) {
-			if ( OrderManagement::TYPE_REVERSAL !== ( $transaction['type'] ?? '' ) ) {
-				continue;
+
+		// finally: leaving the handler unhooked because saving the order threw would silently
+		// disable order management for the rest of the request.
+		try {
+			foreach ( $result['financialTransactions']['financialTransactionsList'] ?? array() as $transaction ) {
+				if ( OrderManagement::TYPE_REVERSAL !== ( $transaction['type'] ?? '' ) ) {
+					continue;
+				}
+
+				$payee_reference = $transaction['payeeReference'] ?? '';
+				if ( ! isset( $pending[ $payee_reference ] ) ) {
+					continue;
+				}
+
+				// process_transaction() adds the refund order note and moves the order status.
+				$process_result = $api->process_transaction( $order, $transaction );
+				if ( is_wp_error( $process_result ) ) {
+					Swedbank_Pay()->logger()->error( "[ASYNC REVERSAL]: Failed to process confirmed reversal #{$transaction['number']} for order #{$order->get_order_number()}: {$process_result->get_error_message()}", $context );
+					continue;
+				}
+
+				unset( $pending[ $payee_reference ] );
+				$confirmed = true;
+
+				Swedbank_Pay()->logger()->info( "[ASYNC REVERSAL]: Reversal confirmed for order #{$order->get_order_number()}. Transaction: #{$transaction['number']}.", $context );
 			}
-
-			$payee_reference = $transaction['payeeReference'] ?? '';
-			if ( ! isset( $pending[ $payee_reference ] ) ) {
-				continue;
+		} finally {
+			if ( false !== $status_priority ) {
+				add_action( 'woocommerce_order_status_changed', $status_hook, $status_priority, 3 );
 			}
-
-			// process_transaction() adds the refund order note and moves the order status.
-			$process_result = $api->process_transaction( $order, $transaction );
-			if ( is_wp_error( $process_result ) ) {
-				Swedbank_Pay()->logger()->error( "[ASYNC REVERSAL]: Failed to process confirmed reversal #{$transaction['number']} for order #{$order->get_order_number()}: {$process_result->get_error_message()}", $context );
-				continue;
-			}
-
-			unset( $pending[ $payee_reference ] );
-			$confirmed = true;
-
-			Swedbank_Pay()->logger()->info( "[ASYNC REVERSAL]: Reversal confirmed for order #{$order->get_order_number()}. Transaction: #{$transaction['number']}.", $context );
-		}
-
-		if ( false !== $status_priority ) {
-			add_action( 'woocommerce_order_status_changed', $status_hook, $status_priority, 3 );
 		}
 
 		if ( $confirmed ) {
