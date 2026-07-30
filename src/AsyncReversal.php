@@ -16,11 +16,9 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Class AsyncReversal
  *
- * Some payment methods (e.g. Banklink in the Baltics) process reversals asynchronously.
- * The reversal request is then answered with HTTP 202 Accepted, the initialized reversal
- * transaction is not included in the response, and the final result arrives via a payee
- * callback. Successful reversals appear in the payment order's `financialTransactions`;
- * failed reversals appear in `postPurchaseFailedAttempts`.
+ * Some payment methods (e.g. Banklink in the Baltics) answer a reversal with HTTP 202 and report
+ * the outcome later. Confirmed reversals appear in `financialTransactions`, rejected ones in
+ * `postpurchaseFailedAttempts`.
  */
 class AsyncReversal {
 	use Traits\Singleton;
@@ -28,17 +26,12 @@ class AsyncReversal {
 	public const PENDING_REVERSALS_META = '_swedbank_pay_pending_reversals';
 
 	/**
-	 * Numbers of the failed post purchase attempts that have already been handled.
-	 *
-	 * Failed attempts carry no payeeReference, so they cannot be matched against a
-	 * pending entry directly. Remembering the ones we have seen is what keeps an older
-	 * failure from being attributed to a later reversal.
+	 * Handled failed attempt numbers, so an older failure is not attributed to a later reversal.
 	 */
 	public const SEEN_FAILED_ATTEMPTS_META = '_swedbank_pay_seen_failed_attempts';
 
 	/**
-	 * How much earlier than the pending entry a failed attempt may be created and still
-	 * be considered part of it, in seconds. Absorbs clock skew between us and Swedbank Pay.
+	 * Clock skew allowance, in seconds, when matching a failed attempt to a pending entry.
 	 */
 	private const FAILED_ATTEMPT_TOLERANCE = 300;
 
@@ -55,11 +48,7 @@ class AsyncReversal {
 	}
 
 	/**
-	 * Delays between the scheduled rechecks, in seconds.
-	 *
-	 * The callback is the primary signal; these rechecks only exist so a lost callback does
-	 * not leave a reversal pending forever. The ladder spans the three days Swedbank Pay
-	 * documents as the worst case for an asynchronous reversal.
+	 * Delays between rechecks, in seconds, spanning the three day worst case.
 	 *
 	 * @return int[]
 	 */
@@ -100,9 +89,7 @@ class AsyncReversal {
 			)
 		);
 
-		// Action Scheduler returns 0 when it could not store the action. Reporting that as a
-		// success would retire the safety net without telling anyone, leaving the reversal
-		// pending forever, so treat it as a failure and let the caller escalate instead.
+		// Action Scheduler returns 0 when it could not store the action.
 		if ( 0 === $action_id ) {
 			Swedbank_Pay()->logger()->error(
 				"[ASYNC REVERSAL]: Failed to schedule recheck attempt {$attempt} for order #{$order->get_order_number()}.",
@@ -256,10 +243,7 @@ class AsyncReversal {
 			)
 		);
 
-		// Safety net in case the payee callback never arrives. A failure here is logged by
-		// schedule_recheck() and left non-fatal on purpose: the reversal has been accepted, the
-		// callback is still the primary route, and maybe_block_pending_reversal() re-checks on
-		// the merchant's next payment action regardless.
+		// Safety net if the callback never arrives; non-fatal, schedule_recheck() logs a failure.
 		$this->schedule_recheck( $order, 0 );
 
 		Swedbank_Pay()->logger()->info( "[ASYNC REVERSAL]: Reversal accepted asynchronously (HTTP 202) for order #{$order->get_order_number()}. Awaiting confirmation via callback.", $context );
@@ -397,8 +381,16 @@ class AsyncReversal {
 
 		$seen = $this->get_seen_failed_attempts( $order );
 		foreach ( $failed_attempts as $attempt ) {
-			// The resource model calls this field `type`; tolerate `transactionType` in case it is aliased.
-			$type = $attempt['transactionType'] ?? $attempt['type'] ?? '';
+			// Unclear which field name is used; log rather than skip an attempt carrying neither.
+			if ( ! isset( $attempt['transactionType'] ) && ! isset( $attempt['type'] ) ) {
+				Swedbank_Pay()->logger()->error(
+					"[ASYNC REVERSAL]: Failed attempt for order #{$order->get_order_number()} has no recognised type field: " . wp_json_encode( $attempt ),
+					$context
+				);
+				continue;
+			}
+
+			$type = $attempt['transactionType'] ?? $attempt['type'];
 			if ( OrderManagement::TYPE_REVERSAL !== $type ) {
 				continue;
 			}
@@ -410,9 +402,7 @@ class AsyncReversal {
 				continue;
 			}
 
-			// A failed attempt has no payeeReference, so the pending entry it belongs to has
-			// to be inferred. Only one reversal can be pending at a time, so the oldest entry
-			// created no later than the attempt is the one that failed.
+			// A failed attempt carries no payeeReference, so infer which entry it belongs to.
 			$entry_reference = $this->match_pending_to_attempt( $pending, $attempt );
 
 			if ( '' !== $number ) {
@@ -441,39 +431,32 @@ class AsyncReversal {
 	/**
 	 * Retrieve the post purchase failed attempts for a payment order.
 	 *
-	 * The paymentOrder resource advertises this sub-resource as `postpurchasefailedattempts`,
-	 * while the resource model documents the endpoint as `failedpostpurchaseattempts`. Try the
-	 * advertised spelling first and fall back to the documented one.
+	 * Note the lowercase p in "purchase"; the SDK's link stub docblock spells it differently to
+	 * the API.
 	 *
 	 * @param \SwedbankPay\Checkout\WooCommerce\Swedbank_Pay_Api $api The API instance.
 	 * @param \WC_Order                                          $order The order, used for logging.
 	 * @param string                                             $payment_order_id The payment order ID.
 	 *
-	 * @return array|\WP_Error The list of failed attempts, or WP_Error when neither endpoint answered.
+	 * @return array|\WP_Error The failed attempts, or WP_Error on a failed request or unknown shape.
 	 */
 	private function get_failed_attempts( $api, \WC_Order $order, $payment_order_id ) {
-		$endpoints = array( 'postpurchasefailedattempts', 'failedpostpurchaseattempts' );
-
-		$result = null;
-		foreach ( $endpoints as $endpoint ) {
-			LogUtility::$title = "[ASYNC REVERSAL]: Retrieve {$endpoint} for order #{$order->get_order_number()}";
-			$result            = $api->request( 'GET', "{$payment_order_id}/{$endpoint}" );
-			if ( ! is_wp_error( $result ) ) {
-				break;
-			}
-		}
+		LogUtility::$title = "[ASYNC REVERSAL]: Retrieve postpurchasefailedattempts for order #{$order->get_order_number()}";
+		$result            = $api->request( 'GET', "{$payment_order_id}/postpurchasefailedattempts" );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
 
-		$container = $result['postPurchaseFailedAttempts'] ?? $result['failedPostPurchaseAttempts'] ?? $result;
+		// Erroring keeps the reversal pending; reading an unknown shape as "no failures" would lose it.
+		if ( ! isset( $result['postpurchaseFailedAttempts']['postpurchaseFailedAttemptList'] ) ) {
+			return new \WP_Error(
+				'unexpected_response',
+				'The postpurchasefailedattempts response did not contain postpurchaseFailedAttempts.postpurchaseFailedAttemptList.'
+			);
+		}
 
-		// The documented list key is `postpurchaseFailedAttemptList`; the others are tolerated aliases.
-		$list = $container['postpurchaseFailedAttemptList']
-			?? $container['postPurchaseFailedAttemptList']
-			?? $container['failedAttemptList']
-			?? array();
+		$list = $result['postpurchaseFailedAttempts']['postpurchaseFailedAttemptList'];
 
 		return is_array( $list ) ? $list : array();
 	}
