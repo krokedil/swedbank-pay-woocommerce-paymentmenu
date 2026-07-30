@@ -1298,12 +1298,9 @@ class Swedbank_Pay_Api {
 				$context
 			);
 
-			// HTTP 202: the reversal is processed asynchronously and is not included in
-			// the response. The result arrives later via the payee callback.
-			if ( 202 === (int) $request_service->getClient()->getResponseCode()
-				|| apply_filters( 'swedbank_pay_force_async_reversal', false, $order )
-			) {
-				return Swedbank_Pay()->async_reversal()->init_pending( $order, $transaction_data, 'amount' );
+			$pending = $this->maybe_init_async_reversal( $request_service, $order, $transaction_data );
+			if ( null !== $pending ) {
+				return $pending;
 			}
 
 			$transaction = $this->financial_transaction_to_array(
@@ -1401,12 +1398,9 @@ class Swedbank_Pay_Api {
 				$context
 			);
 
-			// HTTP 202: the reversal is processed asynchronously and is not included in
-			// the response. The result arrives later via the payee callback.
-			if ( 202 === (int) $request_service->getClient()->getResponseCode()
-				|| apply_filters( 'swedbank_pay_force_async_reversal', false, $order )
-			) {
-				return Swedbank_Pay()->async_reversal()->init_pending( $order, $transaction_data, 'items', $refund_order );
+			$pending = $this->maybe_init_async_reversal( $request_service, $order, $transaction_data );
+			if ( null !== $pending ) {
+				return $pending;
 			}
 
 			$transaction = $this->financial_transaction_to_array(
@@ -1489,6 +1483,36 @@ class Swedbank_Pay_Api {
 			'pending_reversal',
 			__( 'A refund on this order is still awaiting confirmation from Swedbank Pay. Please wait until it has been confirmed before performing another action on the payment.', 'swedbank-pay-payment-menu' )
 		);
+	}
+
+	/**
+	 * Register the reversal as pending when Swedbank Pay accepted it without completing it.
+	 *
+	 * HTTP 202 means the reversal is not in the response; the outcome arrives via the callback.
+	 *
+	 * @param mixed    $request_service The reversal request that was sent.
+	 * @param WC_Order $order The order being refunded.
+	 * @param mixed    $transaction_data The transaction data sent in the request.
+	 *
+	 * @return array|null The pending transaction array, or null when the reversal completed.
+	 */
+	private function maybe_init_async_reversal( $request_service, $order, $transaction_data ) {
+		/**
+		 * Force the asynchronous reversal path regardless of the response code.
+		 *
+		 * Test seam. Forcing it on a reversal that actually completed leaves the order blocked
+		 * from further payment actions until the recheck ladder gives up.
+		 *
+		 * @param bool     $force Whether to treat the reversal as accepted asynchronously.
+		 * @param WC_Order $order The order being refunded.
+		 */
+		$force = apply_filters( 'swedbank_pay_force_async_reversal', false, $order );
+
+		if ( 202 !== (int) $request_service->getClient()->getResponseCode() && ! $force ) {
+			return null;
+		}
+
+		return Swedbank_Pay()->async_reversal()->init_pending( $order, $transaction_data );
 	}
 
 	/**

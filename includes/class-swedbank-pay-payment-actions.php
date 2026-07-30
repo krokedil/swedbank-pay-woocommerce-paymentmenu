@@ -421,11 +421,6 @@ class Swedbank_Pay_Payment_Actions {
 
 		$this->save_refunded_items( $order, $lines );
 
-		// Keep the refunded lines on the pending entry, so they can be rolled back if the reversal fails.
-		if ( $is_pending ) {
-			Swedbank_Pay()->async_reversal()->set_pending_field( $order, $result['payeeReference'], 'lines', $lines );
-		}
-
 		// Create Credit Memo.
 		if ( $create_credit_memo ) {
 			$amount = 0;
@@ -443,10 +438,6 @@ class Swedbank_Pay_Payment_Actions {
 					'restock_items'  => true,
 				)
 			);
-
-			if ( ! is_wp_error( $refund ) && $is_pending ) {
-				Swedbank_Pay()->async_reversal()->set_pending_field( $order, $result['payeeReference'], 'refund_id', $refund->get_id() );
-			}
 
 			if ( is_wp_error( $refund ) ) {
 				$context['error'] = join( '; ', $refund->get_error_messages() );
