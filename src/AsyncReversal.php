@@ -238,7 +238,7 @@ class AsyncReversal {
 		$order->add_order_note(
 			sprintf(
 				// translators: %s: refund amount.
-				__( 'The refund of %s has been sent to Swedbank Pay and is awaiting confirmation. This usually takes less than a minute, but can in rare cases take up to 3 days.', 'swedbank-pay-payment-menu' ),
+				__( 'The refund of %s has been sent to Swedbank Pay and is awaiting confirmation.', 'swedbank-pay-payment-menu' ),
 				wc_price( $amount / 100, array( 'currency' => $order->get_currency() ) )
 			)
 		);
