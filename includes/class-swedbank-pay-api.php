@@ -1269,10 +1269,12 @@ class Swedbank_Pay_Api {
 			'amount'           => $amount,
 		);
 
+		// Keep the VAT that get_transaction_data() derived from the order items. Swedbank Pay
+		// rejects a transaction whose vatAmount does not match the summed vatAmount of the order
+		// items it carries, so zeroing it here failed on any order with VAT.
 		$helper           = new Order( $order );
 		$transaction_data = $helper->get_transaction_data()
 			->setAmount( round( $amount * 100 ) )
-			->setVatAmount( 0 )
 			->setDescription( sprintf( 'Refund Order #%s.', $order->get_order_number() ) );
 
 		$transaction = new TransactionObject();
