@@ -36,6 +36,26 @@ class AsyncReversal {
 	 */
 	public function __construct() {
 		add_action( self::RECHECK_HOOK, array( $this, 'handle_recheck' ), 10, 2 );
+		add_filter( 'woocommerce_order_fully_refunded_status', array( $this, 'fully_refunded_status' ), 10, 2 );
+	}
+
+	/**
+	 * Hold a fully refunded order rather than marking it refunded before Swedbank Pay confirms.
+	 *
+	 * @param string $status The status WooCommerce is about to set.
+	 * @param int    $order_id The order being refunded.
+	 *
+	 * @return string
+	 */
+	public function fully_refunded_status( $status, $order_id ) {
+		$order = wc_get_order( $order_id );
+		if ( ! $order instanceof \WC_Order || ! $this->has_pending( $order ) ) {
+			return $status;
+		}
+
+		// Refunded would claim the money is back before anyone knows that. Confirmation moves the
+		// order on to refunded; rejection and giving up both leave it on hold with a reason.
+		return 'on-hold';
 	}
 
 	/**
