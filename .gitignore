@@ -36,3 +36,6 @@ tmp-*
 # Release
 /release/
 yarn.lock
+.playground/
+/pr-screenshots/
+.env
