@@ -1,0 +1,35 @@
+{
+	"version": "0.0.1",
+	"configurations": [
+		{
+			"name": "playground-swedbank-pay-payment-menu-start",
+			"runtimeExecutable": "npm",
+			"runtimeArgs": [
+				"run",
+				"playground:start"
+			],
+			"port": 8920,
+			"autoPort": true
+		},
+		{
+			"name": "playground-swedbank-pay-payment-menu-development",
+			"runtimeExecutable": "npm",
+			"runtimeArgs": [
+				"run",
+				"playground:server-development"
+			],
+			"port": 8921,
+			"autoPort": true
+		},
+		{
+			"name": "playground-swedbank-pay-payment-menu-demo",
+			"runtimeExecutable": "npm",
+			"runtimeArgs": [
+				"run",
+				"playground:server-demo"
+			],
+			"port": 8922,
+			"autoPort": true
+		}
+	]
+}
