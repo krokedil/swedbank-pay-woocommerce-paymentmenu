@@ -231,6 +231,13 @@ class Swedbank_Pay_Admin {
 				true
 			);
 
+			wp_register_style(
+				'swedbank-pay-admin-css',
+				plugin_dir_url( __FILE__ ) . '../assets/css/admin.css',
+				array(),
+				SWEDBANK_PAY_VERSION
+			);
+
 			// Localize the script.
 			$translation_array = array(
 				'ajax_url'  => admin_url( 'admin-ajax.php' ),
@@ -241,6 +248,7 @@ class Swedbank_Pay_Admin {
 			wp_localize_script( 'swedbank-pay-admin-js', 'SwedbankPay_Admin', $translation_array );
 
 			// Enqueued script with localized data.
+			wp_enqueue_style( 'swedbank-pay-admin-css' );
 			wp_enqueue_script( 'swedbank-pay-admin-js' );
 		}
 	}
