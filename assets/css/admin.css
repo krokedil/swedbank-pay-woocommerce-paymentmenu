@@ -1,3 +1,26 @@
-a.button.swedbank-pay-transaction-link {
-	margin: 10px 0 5px 0;
+a.swedbank-pay-transaction-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+}
+
+#swedbank_payment_actions .dashicons {
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+	line-height: 16px;
+}
+
+.woocommerce-order-data__meta.order_number a[target="_blank"]::after {
+	content: "\f504";
+	font-family: dashicons, sans-serif;
+	font-size: 16px;
+	color: #3c434a;
+	line-height: 1;
+	display: inline-block;
+	vertical-align: text-bottom;
+	margin-left: 2px;
+	text-decoration: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
 }

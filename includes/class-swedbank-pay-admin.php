@@ -234,7 +234,7 @@ class Swedbank_Pay_Admin {
 			wp_register_style(
 				'swedbank-pay-admin-css',
 				plugin_dir_url( __FILE__ ) . '../assets/css/admin.css',
-				array(),
+				array( 'dashicons' ),
 				SWEDBANK_PAY_VERSION
 			);
 
