@@ -666,10 +666,11 @@ class Swedbank_Pay_Api {
 	 *
 	 * @param WC_Order $order The WooCommerce order object to process the transaction for.
 	 * @param array    $transaction An associative array containing transaction details, such as 'number', 'type', 'amount', etc.
+	 * @param bool     $create_refund_order Whether to create a WooCommerce refund order for a Reversal transaction. Should be false when the caller already creates (or has created) the refund order itself, e.g. a WooCommerce-initiated refund.
 	 *
 	 * @return true|WP_Error
 	 */
-	public function process_transaction( WC_Order $order, array $transaction ) {
+	public function process_transaction( WC_Order $order, array $transaction, $create_refund_order = true ) {
 		$transaction_id = $transaction['number'];
 		$context        = array(
 			'order_id'         => $order->get_id(),
@@ -789,6 +790,7 @@ class Swedbank_Pay_Api {
 			case self::TYPE_REVERSAL:
 				$remaining_reversal = $payment_order->getRemainingReversalAmount();
 				$is_full_refund     = null === $remaining_reversal;
+				$refund_amount      = $transaction['amount'] / 100;
 
 				if ( $is_full_refund ) {
 					Swedbank_Pay()->logger()->debug(
@@ -796,11 +798,51 @@ class Swedbank_Pay_Api {
 							'[PROCESS TRANSACTION]: Warning: Payment Order ID: %s. Transaction %s. Transaction amount: %s. Order amount: %s. Field remainingReversalAmount is missing. Full action?', //phpcs:ignore
 							$payment_order_id,
 							$transaction_id,
-							$transaction['amount'] / 100,
+							$refund_amount,
 							$order->get_total()
 						),
 						$context
 					);
+				}
+
+				// This transaction has no corresponding WooCommerce refund order yet, e.g. it was refunded directly at Swedbank Pay. Create one so it's correctly reflected in stock and reports.
+				if ( $create_refund_order ) {
+					$refund = wc_create_refund(
+						array(
+							'order_id'       => $order->get_id(),
+							'amount'         => $refund_amount,
+							// translators: 1: transaction ID.
+							'reason'         => sprintf( __( 'Refunded at Swedbank Pay. Transaction: %s', 'swedbank-pay-payment-menu' ), $transaction_id ),
+							'refund_payment' => false,
+							'restock_items'  => false,
+						)
+					);
+
+					if ( is_wp_error( $refund ) ) {
+						$context['error'] = $refund->get_error_message();
+						Swedbank_Pay()->logger()->error(
+							"[PROCESS TRANSACTION]: Failed to create refund order for transaction #{$transaction_id} on order #{$order->get_order_number()}.",
+							$context
+						);
+
+						$order->add_order_note(
+							sprintf(
+								'Failed to create the refund order for the Swedbank Pay refund. Transaction: %s. Amount: %s. Error: %s',
+								$transaction_id,
+								$refund_amount,
+								$refund->get_error_message()
+							)
+						);
+					} else {
+						// The refund only carries a total amount, not which line items it covers, so it can't be attributed to specific order lines or trigger automatic restocking.
+						$order->add_order_note(
+							sprintf(
+								'Note: This refund was made directly in the Swedbank Pay portal, not from WooCommerce. Amount: %s. Transaction: %s. Line items and stock levels have not been adjusted automatically — please review and update them manually if needed.',
+								$refund_amount,
+								$transaction_id
+							)
+						);
+					}
 				}
 
 				// Update order status.
@@ -811,7 +853,7 @@ class Swedbank_Pay_Api {
 						0
 					);
 
-					// Prevent refund creation.
+					// The refund order has already been created above (or by the caller), prevent WooCommerce from creating a duplicate one for the remaining amount.
 					remove_action(
 						'woocommerce_order_status_refunded',
 						'wc_order_fully_refunded'
@@ -820,7 +862,7 @@ class Swedbank_Pay_Api {
 					$message = sprintf(
 						'Payment has been refunded. Transaction: %s. Amount: %s',
 						$transaction_id,
-						$transaction['amount'] / 100
+						$refund_amount
 					);
 
 					$order->update_status(
@@ -833,7 +875,7 @@ class Swedbank_Pay_Api {
 					$message = sprintf(
 						'Payment has been partially refunded: Transaction: %s. Amount: %s. Remaining amount: %s', //phpcs:ignore
 						$transaction_id,
-						$transaction['amount'] / 100,
+						$refund_amount,
 						$remaining_amount
 					);
 
@@ -842,8 +884,6 @@ class Swedbank_Pay_Api {
 					);
 				}
 
-				// @todo Create Credit Memo.
-				// @todo Prent duplicated Credit Memo creation (by backend, by admin, by transaction callback).
 				break;
 			default:
 				Swedbank_Pay()->logger()->debug( sprintf( '[PROCESS TRANSACTION]: Unknown transaction type %s for order #%s', $transaction['type'], $order->get_order_number() ), $context );
@@ -1340,7 +1380,8 @@ class Swedbank_Pay_Api {
 				return $transaction;
 			}
 
-			$this->process_transaction( $order, $transaction );
+			// The caller (refund_payment_amount) manages the refund order itself, so don't create a duplicate one here.
+			$this->process_transaction( $order, $transaction, false );
 
 			return $transaction;
 		} catch ( ClientException $e ) {
@@ -1429,7 +1470,8 @@ class Swedbank_Pay_Api {
 				return $transaction;
 			}
 
-			$this->process_transaction( $order, $transaction );
+			// The caller (refund_payment) already has, or will create, the refund order itself, so don't create a duplicate one here.
+			$this->process_transaction( $order, $transaction, false );
 
 			return $transaction;
 		} catch ( ClientException $e ) {
