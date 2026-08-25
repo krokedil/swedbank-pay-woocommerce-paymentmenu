@@ -53,21 +53,38 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<?php echo esc_html( $info['paid']['payeeReference'] ); ?>
 		</p>
 	<?php endif; ?>
-	<?php if ( $gateway->api->can_capture( $order ) ) : ?>
-		<button id="swedbank_pay_capture"
-				data-nonce="<?php echo esc_attr( wp_create_nonce( 'swedbank_pay' ) ); ?>"
-				data-order-id="<?php echo esc_html( $order->get_id() ); ?>">
-			<?php esc_html_e( 'Capture Payment', 'swedbank-pay-payment-menu' ); ?>
-		</button>
-		<?php echo wp_kses_post( wc_help_tip( esc_html__( 'Captures the authorized amount so the funds are transferred. Capture the payment when the order has been shipped.', 'swedbank-pay-payment-menu' ) ) ); ?>
-	<?php endif; ?>
+	<?php
+	$can_capture = $gateway->api->can_capture( $order );
+	$can_cancel  = $gateway->api->can_cancel( $order );
+	?>
+	<?php if ( $can_capture || $can_cancel ) : ?>
+		<details class="swedbank-pay-advanced">
+			<summary class="swedbank-pay-advanced__summary">
+				<?php esc_html_e( 'Advanced', 'swedbank-pay-payment-menu' ); ?>
+			</summary>
+			<div class="swedbank-pay-advanced__content">
+				<?php if ( $can_capture ) : ?>
+					<p class="swedbank-pay-advanced__action">
+						<button id="swedbank_pay_capture"
+								type="button" class="button-primary"
+								data-nonce="<?php echo esc_attr( wp_create_nonce( 'swedbank_pay' ) ); ?>"
+								data-order-id="<?php echo esc_html( $order->get_id() ); ?>">
+							<?php esc_html_e( 'Capture Payment', 'swedbank-pay-payment-menu' ); ?>
+						</button>
+					</p>
+				<?php endif; ?>
 
-	<?php if ( $gateway->api->can_cancel( $order ) ) : ?>
-		<button id="swedbank_pay_cancel"
-				data-nonce="<?php echo esc_attr( wp_create_nonce( 'swedbank_pay' ) ); ?>"
-				data-order-id="<?php echo esc_html( $order->get_id() ); ?>">
-			<?php esc_html_e( 'Cancel Payment', 'swedbank-pay-payment-menu' ); ?>
-		</button>
-		<?php echo wp_kses_post( wc_help_tip( esc_html__( 'Cancels the payment before it has been captured. This cannot be undone.', 'swedbank-pay-payment-menu' ) ) ); ?>
+				<?php if ( $can_cancel ) : ?>
+					<p class="swedbank-pay-advanced__action">
+						<button id="swedbank_pay_cancel"
+								type="button" class="button-primary"
+								data-nonce="<?php echo esc_attr( wp_create_nonce( 'swedbank_pay' ) ); ?>"
+								data-order-id="<?php echo esc_html( $order->get_id() ); ?>">
+							<?php esc_html_e( 'Cancel Payment', 'swedbank-pay-payment-menu' ); ?>
+						</button>
+					</p>
+				<?php endif; ?>
+			</div>
+		</details>
 	<?php endif; ?>
 </div>

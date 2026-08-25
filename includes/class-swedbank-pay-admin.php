@@ -36,9 +36,6 @@ class Swedbank_Pay_Admin {
 		// Add meta boxes
 		add_action( 'add_meta_boxes', __CLASS__ . '::add_meta_boxes', 10, 2 );
 
-		// Add action buttons
-		add_action( 'woocommerce_order_item_add_action_buttons', __CLASS__ . '::add_action_buttons', 10, 1 );
-
 		// Add scripts and styles for admin
 		add_action( 'admin_enqueue_scripts', __CLASS__ . '::admin_enqueue_scripts' );
 
@@ -170,38 +167,6 @@ class Swedbank_Pay_Admin {
 			'',
 			__DIR__ . '/../templates/'
 		);
-	}
-
-	/**
-	 * Add action buttons to Order view
-	 *
-	 * @param WC_Order $order
-	 */
-	public static function add_action_buttons( $order ) {
-		if ( function_exists( 'wcs_is_subscription' ) && wcs_is_subscription( $order ) ) {
-			// Buttons are available for orders only
-			return;
-		}
-
-		// Get Payment Gateway
-		if ( swedbank_pay_is_payment_swedbank_method( $order->get_payment_method() ) ) {
-			// Get Payment Gateway
-			$gateway = swedbank_pay_get_payment_method( $order );
-			if ( ! $gateway ) {
-				return;
-			}
-
-			/** @var \Swedbank_Pay_Payment_Gateway_Checkout $gateway */
-			wc_get_template(
-				'admin/action-buttons.php',
-				array(
-					'gateway' => $gateway,
-					'order'   => $order,
-				),
-				'',
-				__DIR__ . '/../templates/'
-			);
-		}
 	}
 
 	/**

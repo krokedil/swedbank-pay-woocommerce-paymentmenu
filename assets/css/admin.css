@@ -24,3 +24,56 @@ a.swedbank-pay-transaction-link {
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 }
+
+.swedbank-pay-advanced {
+	border-top: 1px solid #dcdcde;
+	margin-top: 12px;
+	padding-top: 10px;
+}
+
+.swedbank-pay-advanced__summary {
+	cursor: pointer;
+	font-weight: 600;
+	list-style: none;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.swedbank-pay-advanced__summary::-webkit-details-marker {
+	display: none;
+}
+
+.swedbank-pay-advanced__summary::before {
+	content: "\f139";
+	font-family: dashicons, sans-serif;
+	font-size: 20px;
+	line-height: 1;
+	color: #3c434a;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.swedbank-pay-advanced[open] > .swedbank-pay-advanced__summary::before {
+	content: "\f140";
+}
+
+.swedbank-pay-advanced__summary:focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: 1px;
+}
+
+.swedbank-pay-advanced__content {
+	margin-top: 8px;
+}
+
+.swedbank-pay-advanced__action {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin: 0 0 8px;
+}
+
+.swedbank-pay-advanced__action:last-child {
+	margin-bottom: 0;
+}
