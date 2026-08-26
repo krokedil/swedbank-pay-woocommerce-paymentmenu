@@ -66,7 +66,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<?php if ( $can_capture ) : ?>
 					<p class="swedbank-pay-advanced__action">
 						<button id="swedbank_pay_capture"
-								type="button" class="button-primary"
+								type="button" class="button"
 								data-nonce="<?php echo esc_attr( wp_create_nonce( 'swedbank_pay' ) ); ?>"
 								data-order-id="<?php echo esc_html( $order->get_id() ); ?>">
 							<?php esc_html_e( 'Capture Payment', 'swedbank-pay-payment-menu' ); ?>
@@ -77,7 +77,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<?php if ( $can_cancel ) : ?>
 					<p class="swedbank-pay-advanced__action">
 						<button id="swedbank_pay_cancel"
-								type="button" class="button-primary"
+								type="button" class="button"
 								data-nonce="<?php echo esc_attr( wp_create_nonce( 'swedbank_pay' ) ); ?>"
 								data-order-id="<?php echo esc_html( $order->get_id() ); ?>">
 							<?php esc_html_e( 'Cancel Payment', 'swedbank-pay-payment-menu' ); ?>

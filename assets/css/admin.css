@@ -65,15 +65,20 @@ a.swedbank-pay-transaction-link {
 
 .swedbank-pay-advanced__content {
 	margin-top: 8px;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
 }
 
 .swedbank-pay-advanced__action {
+	flex: 1 1 110px;
 	display: flex;
-	align-items: center;
-	gap: 4px;
-	margin: 0 0 8px;
+	min-width: 0;
+	margin: 0;
 }
 
-.swedbank-pay-advanced__action:last-child {
-	margin-bottom: 0;
+.swedbank-pay-advanced__action .button {
+	width: 100%;
+	padding: 0 4px;
+	text-align: center;
 }
