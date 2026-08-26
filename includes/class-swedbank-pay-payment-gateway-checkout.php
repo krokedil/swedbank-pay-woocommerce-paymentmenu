@@ -603,6 +603,7 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 		$this->init_settings();
 		$this->access_token = isset( $this->settings['access_token'] ) ? $this->settings['access_token'] : $this->access_token; // phpcs:ignore
 		$this->payee_id     = isset( $this->settings['payee_id'] ) ? $this->settings['payee_id'] : $this->payee_id;
+		$this->testmode     = isset( $this->settings['testmode'] ) ? $this->settings['testmode'] : $this->testmode;
 
 		// Test API Credentials.
 		try {
