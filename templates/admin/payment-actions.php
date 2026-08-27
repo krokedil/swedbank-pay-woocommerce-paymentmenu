@@ -68,7 +68,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<button id="swedbank_pay_capture"
 								type="button" class="button"
 								data-nonce="<?php echo esc_attr( wp_create_nonce( 'swedbank_pay' ) ); ?>"
-								data-order-id="<?php echo esc_html( $order->get_id() ); ?>">
+								data-order-id="<?php echo esc_attr( $order->get_id() ); ?>">
 							<?php esc_html_e( 'Capture Payment', 'swedbank-pay-payment-menu' ); ?>
 						</button>
 					</p>
@@ -79,7 +79,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<button id="swedbank_pay_cancel"
 								type="button" class="button"
 								data-nonce="<?php echo esc_attr( wp_create_nonce( 'swedbank_pay' ) ); ?>"
-								data-order-id="<?php echo esc_html( $order->get_id() ); ?>">
+								data-order-id="<?php echo esc_attr( $order->get_id() ); ?>">
 							<?php esc_html_e( 'Cancel Payment', 'swedbank-pay-payment-menu' ); ?>
 						</button>
 					</p>
