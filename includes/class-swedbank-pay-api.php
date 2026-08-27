@@ -25,6 +25,7 @@ use KrokedilSwedbankPayDeps\SwedbankPay\Api\Service\Paymentorder\V3\Request\Tran
 use KrokedilSwedbankPayDeps\SwedbankPay\Api\Service\Paymentorder\V3\Request\GetPaymentorder;
 use KrokedilSwedbankPayDeps\SwedbankPay\Api\Service\Paymentorder\V3\Resource\Response\PaymentorderResponse;
 use KrokedilSwedbankPayDeps\SwedbankPay\Api\Service\Paymentorder\Transaction\Resource\Request\TransactionObject;
+use KrokedilSwedbankPayDeps\SwedbankPay\Api\Service\Paymentorder\Transaction\Resource\Request\Transaction as TransactionData;
 use KrokedilSwedbankPayDeps\SwedbankPay\Api\Service\Paymentorder\V3\Request\Purchase;
 use KrokedilSwedbankPayDeps\SwedbankPay\Api\Service\Paymentorder\Resource\PaymentorderObject;
 use KrokedilSwedbankPayDeps\SwedbankPay\Api\Client\Client;
@@ -1269,13 +1270,11 @@ class Swedbank_Pay_Api {
 			'amount'           => $amount,
 		);
 
-		// Keep the VAT that get_transaction_data() derived from the order items. Swedbank Pay
-		// rejects a transaction whose vatAmount does not match the summed vatAmount of the order
-		// items it carries, so zeroing it here failed on any order with VAT.
 		$helper           = new Order( $order );
-		$transaction_data = $helper->get_transaction_data()
-			->setAmount( round( $amount * 100 ) )
-			->setDescription( sprintf( 'Refund Order #%s.', $order->get_order_number() ) );
+		$transaction_data = $helper->get_transaction_data();
+
+		$this->scale_transaction_to_amount( $transaction_data, (int) round( $amount * 100 ) );
+		$transaction_data->setDescription( sprintf( 'Refund Order #%s.', $order->get_order_number() ) );
 
 		$transaction = new TransactionObject();
 		$transaction->setTransaction( $transaction_data );
@@ -1338,6 +1337,35 @@ class Swedbank_Pay_Api {
 				$this->format_error_message( $request_service->getClient()->getResponseBody(), $e->getMessage() )
 			);
 		}
+	}
+
+	/**
+	 * Scale a transaction built from the whole order down to the amount being reversed.
+	 *
+	 * Swedbank Pay wants vatAmount to match the summed vatAmount of the order items when items
+	 * are present, and to stay below the transaction amount. A partial amount cannot do both
+	 * while carrying the whole order's items, so the items go and the VAT is prorated. Prorated
+	 * rather than read off the refund, because an amount-mode refund leaves WC_Order_Refund with
+	 * no line items and no taxes. Approximate on an order mixing VAT rates.
+	 *
+	 * @param TransactionData $transaction_data The transaction describing the whole order.
+	 * @param int             $amount The amount to reverse, in minor units.
+	 *
+	 * @return void
+	 */
+	private function scale_transaction_to_amount( TransactionData $transaction_data, $amount ) {
+		$order_amount = (int) $transaction_data->getAmount();
+		$order_vat    = (int) $transaction_data->getVatAmount();
+
+		$transaction_data->setAmount( $amount );
+
+		// The whole order: the VAT already matches the items it carries.
+		if ( $amount === $order_amount ) {
+			return;
+		}
+
+		$transaction_data->offsetUnset( TransactionData::ORDER_ITEMS );
+		$transaction_data->setVatAmount( $order_amount > 0 ? (int) round( $amount * $order_vat / $order_amount ) : 0 );
 	}
 
 	/**
