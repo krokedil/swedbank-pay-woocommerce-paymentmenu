@@ -166,9 +166,11 @@ class AsyncReversal {
 		// Drop the entries too, so the order is not blocked from further payment actions forever.
 		$this->save_pending( $order, array() );
 
+		// Swedbank Pay deliberately withholds the reversal operation while it considers the
+		// reversal unanswered, to prevent a duplicate refund, so a retry cannot work until then.
 		$this->set_on_hold(
 			$order,
-			__( 'Swedbank Pay never confirmed whether the refund succeeded. Please verify the refund with Swedbank Pay before taking any further action on this order.', 'swedbank-pay-payment-menu' )
+			__( 'Swedbank Pay never confirmed whether the refund succeeded. Swedbank Pay blocks further refunds on the payment order while a reversal is unresolved, so the refund cannot be retried from WooCommerce. Please verify the refund with Swedbank Pay before taking any further action on this order.', 'swedbank-pay-payment-menu' )
 		);
 	}
 
@@ -448,14 +450,23 @@ class AsyncReversal {
 			)
 		);
 
-		$this->set_on_hold(
-			$order,
-			sprintf(
-				// translators: %s: refund amount.
-				__( 'The refund of %s could not be completed by Swedbank Pay. No money has been returned to the customer. The order has been set to on hold so you can review it and try the refund again.', 'swedbank-pay-payment-menu' ),
-				wc_price( $amount / 100, array( 'currency' => $order->get_currency() ) )
-			)
+		$message = sprintf(
+			// translators: %s: refund amount.
+			__( 'The refund of %s could not be completed by Swedbank Pay. No money has been returned to the customer. The order has been set to on hold so you can review it and try the refund again.', 'swedbank-pay-payment-menu' ),
+			wc_price( $amount / 100, array( 'currency' => $order->get_currency() ) )
 		);
+
+		// Sanitised: remote input rendered into an order note.
+		$reason = isset( $attempt['problem']['detail'] ) ? sanitize_text_field( $attempt['problem']['detail'] ) : '';
+		if ( ! empty( $reason ) ) {
+			$message .= ' ' . sprintf(
+				// translators: %s: the reason Swedbank Pay gave for rejecting the refund.
+				__( 'Reason given by Swedbank Pay: %s', 'swedbank-pay-payment-menu' ),
+				$reason
+			);
+		}
+
+		$this->set_on_hold( $order, $message );
 	}
 
 	/**
