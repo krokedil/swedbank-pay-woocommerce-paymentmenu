@@ -53,6 +53,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<?php echo esc_html( $info['paid']['payeeReference'] ); ?>
 		</p>
 	<?php endif; ?>
+	<?php if ( $gateway->api->can_capture( $order ) ) : ?>
+		<button id="swedbank_pay_capture"
+				data-nonce="<?php echo esc_attr( wp_create_nonce( 'swedbank_pay' ) ); ?>"
+				data-order-id="<?php echo esc_html( $order->get_id() ); ?>">
+			<?php esc_html_e( 'Capture Payment', 'swedbank-pay-payment-menu' ); ?>
+		</button>
+<?php endif; ?>
 	<?php
 	$can_capture = $gateway->api->can_capture( $order );
 	$can_cancel  = $gateway->api->can_cancel( $order );

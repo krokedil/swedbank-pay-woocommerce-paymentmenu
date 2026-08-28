@@ -2,11 +2,11 @@
 Contributors: swedbankpay
 Tags: ecommerce, swedbank, payex, payment gateway, woocommerce
 Requires at least: 5.3
-Tested up to: 6.9
+Tested up to: 7.1
 Requires PHP: 7.4
 WC requires at least: 5.5.1
-WC tested up to: 10.6.1
-Stable tag: 4.4.0
+WC tested up to: 11.0.1
+Stable tag: 4.6.1
 License: Apache License 2.0
 License URI: http://www.apache.org/licenses/LICENSE-2.0
 
@@ -95,6 +95,37 @@ You are now done with configuring our plugin.
 Please update to version 1.2.0.
 
 == Changelog ==
+= 2026.08.18    - version 4.6.1 =
+* Tweak         - Updated the link in the WooCommerce order admin leading to the payment order in the Swedbank Pay merchant portal.
+* Fix           - Fixed a fatal error ("Division by zero") that occurred when performing a partial refund by amount from the WooCommerce order admin without specifying a quantity on the order line.
+* Fix           - Fixed an issue in seamless checkout where a completed payment could be left unreconciled and the order cancelled, because a failed update replaced the payment order without aborting it first.
+
+= 2026.06.11    - version 4.6.0 =
+* Feature       - Updated the Swedbank Pay PHP SDK to version 6.3.0.
+* Enhancement   - Added a new "Support" tab in plugin settings with quick access to help links and support resources.
+* Tweak         - Removed the plugin's dependency on the PHP BCMath extension.
+* Tweak         - Removed the "Language" plugin setting; checkout language is now automatically determined from the current WordPress locale.
+* Tweak         - Added country code to order creation requests sent to Swedbank Pay.
+* Fix           - Fixed the "Cancel Payment" button in the order admin, which showed an error and left the order uncancelled even though the payment had already been cancelled with Swedbank Pay. Cancellations now complete correctly, mark the order as cancelled, and record the outcome as an order note.
+* Fix           - Fixed an issue where the description field was not displayed at checkout.
+* Fix           - Fixed an issue where the split instrument setting was not being saved.
+* Fix           - Fixed an issue where the reference sent to Swedbank Pay could differ between the redirect and seamless flows.
+* Fix           - Fixed an "Undefined array key" PHP warning. 
+
+= 2026.06.02    - version 4.5.0 =
+* Feature       - Added a 'Subsite' setting for split settlement with Swedbank Pay. Requires a prior agreement with Swedbank Pay.
+* Fix           - Fixed an issue where error messages were not shown on the settings page.
+
+= 2026.05.26    - version 4.4.2 =
+* Fix           - Resolved an "undefined array key" PHP warning.
+* Tweak         - Removed the plugin's dependency on the PHP BCMath extension.
+* Tweak         - Removed the "Language" setting. The checkout language is now automatically derived from the current WordPress locale.
+
+= 2026.04.27    - version 4.4.1 =
+* Fix           - Fixed an issue where automatic capture was sometimes used even when disabled in the plugin settings.
+* Fix           - Corrected the Trustly label on the settings page.
+* Tweak         - Added the 'Payee Reference' field to the admin order metabox.
+
 = 2026.03.23    - version 4.4.0 =
 * Feature       - Added support for splitting the payment methods from Swedbank Pay into separate payment methods in WooCommerce. Currently only supported for the redirect flow.
 * Fix           - The selected language setting is now also used for the 'Seamless Menu' checkout flow.
