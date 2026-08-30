@@ -179,7 +179,7 @@ class InlineEmbedded extends CheckoutFlow {
 					return array();
 				}
 
-				// A verify operation cannot be updated which is the case for all zero amount order.
+				// A verify operation cannot be updated which is the case for all zero amount orders.
 				if ( PaymentDataHelper::OPERATION_VERIFY === $session_operation ) {
 					return array();
 				}
@@ -270,7 +270,7 @@ class InlineEmbedded extends CheckoutFlow {
 			return;
 		}
 
-		// A verify operation cannot be updated which is the case for all zero amount order.
+		// A verify operation cannot be updated which is the case for all zero amount orders.
 		if ( PaymentDataHelper::OPERATION_VERIFY === WC()->session->get( 'swedbank_pay_operation' ) ) {
 			return;
 		}
