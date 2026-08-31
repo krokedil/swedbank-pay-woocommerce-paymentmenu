@@ -346,19 +346,24 @@ class Swedbank_Pay_Api {
 	 * @return WP_Error|array
 	 */
 	public function get_embedded_purchase() {
-		$payment_order_id  = explode( '/', WC()->session->get( 'swedbank_pay_paymentorder_id' ) );
-		$payment_order_id  = array_pop( $payment_order_id );
+		$payment_order_id = WC()->session->get( 'swedbank_pay_paymentorder_id' );
+		if ( empty( $payment_order_id ) ) {
+			return new WP_Error( 'no_payment_order', 'No payment session in progress.' );
+		}
+
+		$parts             = explode( '/', $payment_order_id );
+		$short_id          = array_pop( $parts );
 		$context           = array(
-			'payment_order_id' => $payment_order_id,
+			'payment_order_id' => $short_id,
 		);
-		LogUtility::$title = "[CHECKOUT]: Get embedded checkout for payment order ID #{$context['payment_order_id']}";
+		LogUtility::$title = "[CHECKOUT]: Get embedded checkout for payment order ID #{$short_id}";
 
 		$view_session_url = WC()->session->get( 'swedbank_pay_view_session_url' );
 		$result           = $this->request( 'GET', $view_session_url );
 		if ( is_wp_error( Swedbank_Pay()->system_report()->request( $result ) ) ) {
 			$context['error'] = sprintf( '%s: API Exception: %s', __METHOD__, $result->get_error_message() );
 			Swedbank_Pay()->logger()->error(
-				"[CHECKOUT]: Get embedded checkout for payment order ID #{$context['payment_order_id']}",
+				"[CHECKOUT]: Get embedded checkout for payment order ID #{$short_id}",
 				$context
 			);
 
@@ -371,12 +376,17 @@ class Swedbank_Pay_Api {
 	/**
 	 * Update a embedded payment.
 	 *
-	 * @param string|null $instrument The instrument to use for the payment, e.g. 'CreditCard'. This is optional and may not be needed for all flows or gateways.
+	 * @param string|null   $instrument The instrument to use for the payment, e.g. 'CreditCard'. This is optional and may not be needed for all flows or gateways.
 	 * @param WC_Order|null $order The order object to get the order number from if it exists.
 	 *
 	 * @return WP_Error|ResponseServiceInterface
 	 */
 	public function update_embedded_purchase( $instrument = null, $order = null ) {
+		$payment_order_id = WC()->session->get( 'swedbank_pay_paymentorder_id' );
+		if ( empty( $payment_order_id ) ) {
+			return new WP_Error( 'no_payment_order', 'No payment session in progress.' );
+		}
+
 		$update_payment_url = WC()->session->get( 'swedbank_pay_update_order_url' );
 		$helper             = new Cart();
 
@@ -390,19 +400,19 @@ class Swedbank_Pay_Api {
 		$payment_order_object = new PaymentorderObject();
 		$payment_order_object->setPaymentorder( $payment_order );
 
-		$payment_order_id = explode( '/', WC()->session->get( 'swedbank_pay_paymentorder_id' ) );
-		$payment_order_id = array_pop( $payment_order_id );
+		$parts    = explode( '/', $payment_order_id );
+		$short_id = array_pop( $parts );
 
 		$context = array(
-			'payment_order_id' => $payment_order_id,
+			'payment_order_id' => $short_id,
 		);
 
-		LogUtility::$title = "[CHECKOUT]: Update embedded checkout for payment order ID #{$context['payment_order_id']}";
+		LogUtility::$title = "[CHECKOUT]: Update embedded checkout for payment order ID #{$short_id}";
 		$result            = $this->request( 'PATCH', $update_payment_url, $payment_order_object );
 		if ( is_wp_error( Swedbank_Pay()->system_report()->request( $result ) ) ) {
 			$context['error'] = sprintf( '%s: API Exception: %s', __METHOD__, $result->get_error_message() );
 			Swedbank_Pay()->logger()->error(
-				"[CHECKOUT]: Update embedded purchase for payment order ID #{$context['payment_order_id']}",
+				"[CHECKOUT]: Update embedded purchase for payment order ID #{$short_id}",
 				$context
 			);
 
@@ -495,10 +505,11 @@ class Swedbank_Pay_Api {
 			'payment_order_id' => isset( WC()->session ) ? WC()->session->get( 'swedbank_pay_paymentorder_id' ) : null,
 		);
 
-		$start = microtime( true );
+		$start  = microtime( true );
+		$client = self::get_client();
 
 		try {
-			$client        = self::get_client()->request( $method, $url, $params );
+			$client->request( $method, $url, $params );
 			$response_body = $client->getResponseBody();
 			$result        = json_decode( $response_body, true );
 			$time          = microtime( true ) - $start;
@@ -508,19 +519,18 @@ class Swedbank_Pay_Api {
 
 			return $result;
 		} catch ( \KrokedilSwedbankPayDeps\SwedbankPay\Api\Client\Exception $exception ) {
-			$http_code = (int) self::get_client()->getResponseCode();
+			$http_code = (int) $client->getResponseCode();
 			$time      = microtime( true ) - $start;
 
 			$context['error'] = sprintf(
 				'[%.4F] Client Exception. Check debug info: %s',
 				$time,
-				self::get_client()->getDebugInfo()
+				$client->getDebugInfo()
 			);
-			$client           = empty( $client ) ? self::get_client() : $client;
 			LogUtility::log_request( '', $client, WC_Log_Levels::ERROR, $context );
 
 			// https://tools.ietf.org/html/rfc7807 .
-			$response_body = self::get_client()->getResponseBody() ?? '{}';
+			$response_body = $client->getResponseBody() ?? '{}';
 			$data          = json_decode( $response_body, true );
 			if ( json_last_error() === JSON_ERROR_NONE &&
 				isset( $data['title'] ) &&
