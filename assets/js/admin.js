@@ -19,8 +19,11 @@ jQuery(document).ready(function ($) {
 
             switch (response.data['mode']) {
                 case 'items':
-                    $('.refund_line_total.wc_input_price').prop('readonly', true);
-                    $('.refund_line_tax.wc_input_price').prop('readonly', true);
+                    // Only the product rows are refunded by quantity, which recalculates their amounts.
+                    // Shipping and fee rows have no quantity input, so their amounts must stay editable
+                    // or they cannot be refunded at all.
+                    $('tr.item .refund_line_total.wc_input_price').prop('readonly', true);
+                    $('tr.item .refund_line_tax.wc_input_price').prop('readonly', true);
                     $('#refund_amount').prop('readonly', true);
 
                     break;
