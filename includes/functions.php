@@ -62,9 +62,8 @@ function swedbank_pay_get_payment_method( WC_Order $order, bool $use_base_gatewa
 	// Get Payment Gateway
 	$gateways = WC()->payment_gateways()->payment_gateways();
 	if ( ! isset( $gateways[ $payment_method ] ) ) {
-		// The split instrument gateways are only registered for the redirect flow, so an order paid with
-		// one of them has no registered gateway once the flow changes. Order management runs through the
-		// base gateway anyway, so resolve it instead of leaving the caller without a gateway.
+		// The split instrument gateways only exist in the redirect flow, so an order
+		// paid with one has no registered gateway once the flow changes.
 		if ( $use_base_gateway && swedbank_pay_is_payment_swedbank_method( $payment_method ) ) {
 			return swedbank_pay_get_payment_method_by_id();
 		}
@@ -184,7 +183,7 @@ function swedbank_pay_get_order_lines( $order ) {
 	}
 
 	// Add Shipping Total.
-	// A refund order stores its totals as negatives, so normalise them to get the refunded amount.
+	// A refund order stores its totals as negatives.
 	$shipping = abs( (float) $order->get_shipping_total() );
 	$tax      = abs( (float) $order->get_shipping_tax() );
 	if ( $shipping > 0 ) {

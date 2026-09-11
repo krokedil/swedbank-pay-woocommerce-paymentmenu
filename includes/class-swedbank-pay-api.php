@@ -1253,9 +1253,8 @@ class Swedbank_Pay_Api {
 				);
 			}
 
-			// The number belongs to the cancelled sub-resource, not to the payment order itself. The
-			// cancellation is already confirmed by the status above, so continue without one if it is
-			// missing rather than labelling the order note with an empty transaction.
+			// The number belongs to the cancelled sub-resource, not to the payment
+			// order. The status above already confirms the cancellation without it.
 			$cancelled      = $payment_order->getCancelled();
 			$transaction_id = empty( $cancelled ) ? null : $cancelled->offsetGet( 'number' );
 

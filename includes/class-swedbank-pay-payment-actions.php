@@ -201,8 +201,8 @@ class Swedbank_Pay_Payment_Actions {
 		$this->validate_items( $order, $lines );
 
 		// Filter items.
-		// Shipping and fee rows carry no quantity in the WooCommerce refund form, so they are kept on
-		// their refunded amount alone. Dropping them left the shipping unrecorded as refunded.
+		// Shipping and fee rows carry no quantity in the refund form, so they are
+		// kept on their refunded amount alone.
 		foreach ( $lines as $item_id => $line ) {
 			$refund_total = (float) $line['refund_total'];
 			if ( $refund_total <= 0.01 ) {

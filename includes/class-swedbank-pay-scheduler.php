@@ -111,10 +111,9 @@ class Swedbank_Pay_Scheduler {
 			return false;
 		}
 
-		// The callback names the transaction it is about. The `paid` resource keeps reporting the
-		// authorization, which is absent from the financial transactions list once a capture exists,
-		// so pass the number along. finalize_payment() falls back to `paid` when there is none.
-		// process_transaction() dedupes by financial transaction id internally.
+		// The callback names the transaction it is about. `paid` keeps reporting the
+		// authorization, which is absent from the transactions list after a capture.
+		// finalize_payment() falls back to `paid` when the callback carries no number.
 		Swedbank_Pay()->logger()->info( "[SCHEDULER]: Attempting to finalize payment for order #{$context['order_number']} with payment number #{$context['payment_number']}.", $context );
 		$result = $gateway->api->finalize_payment( $order, $payment_number );
 		if ( is_wp_error( Swedbank_Pay()->system_report()->request( $result ) ) ) {
