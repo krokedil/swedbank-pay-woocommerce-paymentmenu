@@ -204,8 +204,7 @@ class Swedbank_Pay_Payment_Actions {
 		// Shipping and fee rows carry no quantity in the refund form, so they are
 		// kept on their refunded amount alone.
 		foreach ( $lines as $item_id => $line ) {
-			$refund_total = (float) $line['refund_total'];
-			if ( $refund_total <= 0.01 ) {
+			if ( (float) $line['refund_total'] <= 0.01 ) {
 				unset( $lines[ $item_id ] );
 			}
 		}
@@ -615,12 +614,12 @@ class Swedbank_Pay_Payment_Actions {
 					break;
 				}
 			}
-			unset( $current_item );
 
 			if ( ! $is_found ) {
 				$current_items[] = $order_line;
 			}
 		}
+		unset( $current_item );
 
 		$order->update_meta_data( '_payex_refunded_items', $current_items );
 		$order->save_meta_data();

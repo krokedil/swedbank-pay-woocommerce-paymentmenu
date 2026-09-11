@@ -59,26 +59,16 @@ function swedbank_pay_get_order( $paymentOrderId ) {
 function swedbank_pay_get_payment_method( WC_Order $order, bool $use_base_gateway = true ) {
 	$payment_method = $order->get_payment_method();
 
-	// Get Payment Gateway
+	// The split instrument gateways only exist in the redirect flow, so an order
+	// paid with one has no registered gateway once the flow changes.
+	if ( $use_base_gateway && swedbank_pay_is_payment_swedbank_method( $payment_method ) ) {
+		return swedbank_pay_get_payment_method_by_id();
+	}
+
+	// Get Payment Gateway.
 	$gateways = WC()->payment_gateways()->payment_gateways();
-	if ( ! isset( $gateways[ $payment_method ] ) ) {
-		// The split instrument gateways only exist in the redirect flow, so an order
-		// paid with one has no registered gateway once the flow changes.
-		if ( $use_base_gateway && swedbank_pay_is_payment_swedbank_method( $payment_method ) ) {
-			return swedbank_pay_get_payment_method_by_id();
-		}
 
-		return null;
-	}
-
-	/** @var \WC_Payment_Gateway $gateway */
-	$gateway = $gateways[ $payment_method ];
-
-	if ( $use_base_gateway && swedbank_pay_is_payment_swedbank_method( $gateway->id ) ) {
-		$gateway = swedbank_pay_get_payment_method_by_id();
-	}
-
-	return $gateway;
+	return $gateways[ $payment_method ] ?? null;
 }
 
 /**
@@ -185,8 +175,8 @@ function swedbank_pay_get_order_lines( $order ) {
 	// Add Shipping Total.
 	// A refund order stores its totals as negatives.
 	$shipping = abs( (float) $order->get_shipping_total() );
-	$tax      = abs( (float) $order->get_shipping_tax() );
 	if ( $shipping > 0 ) {
+		$tax               = abs( (float) $order->get_shipping_tax() );
 		$shipping_with_tax = $shipping + $tax;
 		$tax_percent       = $tax > 0 ? round( 100 / ( $shipping / $tax ) ) : 0;
 		$shipping_method   = trim( $order->get_shipping_method() );

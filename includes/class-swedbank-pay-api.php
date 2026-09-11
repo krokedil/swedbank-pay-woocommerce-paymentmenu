@@ -1258,14 +1258,10 @@ class Swedbank_Pay_Api {
 			$cancelled      = $payment_order->getCancelled();
 			$transaction_id = empty( $cancelled ) ? null : $cancelled->offsetGet( 'number' );
 
-			$message = __( 'Payment has been cancelled.', 'swedbank-pay-payment-menu' );
-			if ( ! empty( $transaction_id ) ) {
-				$message = sprintf(
-					// translators: 1: transaction ID.
-					__( 'Payment has been cancelled. Transaction: %s', 'swedbank-pay-payment-menu' ),
-					$transaction_id
-				);
-			}
+			$message = empty( $transaction_id )
+				? __( 'Payment has been cancelled.', 'swedbank-pay-payment-menu' )
+				// translators: 1: transaction ID.
+				: sprintf( __( 'Payment has been cancelled. Transaction: %s', 'swedbank-pay-payment-menu' ), $transaction_id );
 
 			$this->update_order_status( $order, 'cancelled', $transaction_id, $message );
 
