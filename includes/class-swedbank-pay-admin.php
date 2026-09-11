@@ -475,7 +475,6 @@ class Swedbank_Pay_Admin {
 			'payment_order_id' => $payment_order_id,
 		);
 
-		// Dereferencing a missing gateway would fail fatally.
 		if ( empty( $gateway ) ) {
 			Swedbank_Pay()->logger()->error(
 				"[ORDER MANAGEMENT]: Unable to resolve the payment gateway for order #{$order->get_order_number()}. The '{$old_status}->{$new_status}' status change was not forwarded to Swedbank Pay.",

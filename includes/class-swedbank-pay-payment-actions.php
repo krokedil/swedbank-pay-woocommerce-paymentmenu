@@ -600,7 +600,6 @@ class Swedbank_Pay_Payment_Actions {
 			);
 		}
 
-		// Append to the existing list if applicable.
 		$current_items = $order->get_meta( '_payex_refunded_items' );
 		$current_items = empty( $current_items ) ? array() : (array) $current_items;
 

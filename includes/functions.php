@@ -65,7 +65,6 @@ function swedbank_pay_get_payment_method( WC_Order $order, bool $use_base_gatewa
 		return swedbank_pay_get_payment_method_by_id();
 	}
 
-	// Get Payment Gateway.
 	$gateways = WC()->payment_gateways()->payment_gateways();
 
 	return $gateways[ $payment_method ] ?? null;
