@@ -900,7 +900,7 @@ class Swedbank_Pay_Api {
 			'status'           => $status,
 		);
 
-		Swedbank_Pay()->logger()->info( "[UPDATE STATUS]: Update order #{$context['order_number']} status to '{$context['status']}' with transaction ID: {$context['transaction_id']}'", $context );
+		Swedbank_Pay()->logger()->info( "[UPDATE STATUS]: Update order #{$context['order_number']} status to '{$context['status']}' with transaction ID: '{$context['transaction_id']}'", $context );
 
 		switch ( $status ) {
 			case 'checkout-draft':
@@ -1206,7 +1206,7 @@ class Swedbank_Pay_Api {
 		$request_service = ( new TransactionCancel( $transaction ) )
 			->setClient( self::get_client() )
 			->setPaymentOrderId( $payment_order_id )
-			->setExpands( array( 'financialtransactions', 'paid' ) );
+			->setExpands( array( 'financialtransactions', 'paid', 'cancelled' ) );
 
 		try {
 			/**
@@ -1253,15 +1253,22 @@ class Swedbank_Pay_Api {
 				);
 			}
 
-			$transaction_id = $payment_order->getNumber();
+			// The number belongs to the cancelled sub-resource, not to the payment order itself. The
+			// cancellation is already confirmed by the status above, so continue without one if it is
+			// missing rather than labelling the order note with an empty transaction.
+			$cancelled      = $payment_order->getCancelled();
+			$transaction_id = empty( $cancelled ) ? null : $cancelled->offsetGet( 'number' );
 
-			$this->update_order_status(
-				$order,
-				'cancelled',
-				$transaction_id,
-				// translators: 1: transaction ID.
-				sprintf( __( 'Payment has been cancelled. Transaction: %s', 'swedbank-pay-payment-menu' ), $transaction_id )
-			);
+			$message = __( 'Payment has been cancelled.', 'swedbank-pay-payment-menu' );
+			if ( ! empty( $transaction_id ) ) {
+				$message = sprintf(
+					// translators: 1: transaction ID.
+					__( 'Payment has been cancelled. Transaction: %s', 'swedbank-pay-payment-menu' ),
+					$transaction_id
+				);
+			}
+
+			$this->update_order_status( $order, 'cancelled', $transaction_id, $message );
 
 			return array(
 				'number' => $transaction_id,
