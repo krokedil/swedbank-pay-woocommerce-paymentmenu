@@ -57,14 +57,23 @@ function swedbank_pay_get_order( $paymentOrderId ) {
  * @return null|\WC_Payment_Gateway|\Swedbank_Pay_Payment_Gateway_Checkout
  */
 function swedbank_pay_get_payment_method( WC_Order $order, bool $use_base_gateway = true ) {
+	$payment_method = $order->get_payment_method();
+
 	// Get Payment Gateway
 	$gateways = WC()->payment_gateways()->payment_gateways();
-	if ( ! isset( $gateways[ $order->get_payment_method() ] ) ) {
+	if ( ! isset( $gateways[ $payment_method ] ) ) {
+		// The split instrument gateways are only registered for the redirect flow, so an order paid with
+		// one of them has no registered gateway once the flow changes. Order management runs through the
+		// base gateway anyway, so resolve it instead of leaving the caller without a gateway.
+		if ( $use_base_gateway && swedbank_pay_is_payment_swedbank_method( $payment_method ) ) {
+			return swedbank_pay_get_payment_method_by_id();
+		}
+
 		return null;
 	}
 
 	/** @var \WC_Payment_Gateway $gateway */
-	$gateway = $gateways[ $order->get_payment_method() ];
+	$gateway = $gateways[ $payment_method ];
 
 	if ( $use_base_gateway && swedbank_pay_is_payment_swedbank_method( $gateway->id ) ) {
 		$gateway = swedbank_pay_get_payment_method_by_id();
