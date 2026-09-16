@@ -175,9 +175,10 @@ function swedbank_pay_get_order_lines( $order ) {
 	}
 
 	// Add Shipping Total.
-	if ( (float) $order->get_shipping_total() > 0 ) {
-		$shipping          = (float) $order->get_shipping_total();
-		$tax               = (float) $order->get_shipping_tax();
+	// A refund order stores its totals as negatives.
+	$shipping = abs( (float) $order->get_shipping_total() );
+	if ( $shipping > 0 ) {
+		$tax               = abs( (float) $order->get_shipping_tax() );
 		$shipping_with_tax = $shipping + $tax;
 		$tax_percent       = $tax > 0 ? round( 100 / ( $shipping / $tax ) ) : 0;
 		$shipping_method   = trim( $order->get_shipping_method() );
