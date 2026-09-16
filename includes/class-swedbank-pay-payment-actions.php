@@ -561,6 +561,14 @@ class Swedbank_Pay_Payment_Actions {
 		}
 	}
 
+	/**
+	 * Save the refunded items to order meta.
+	 *
+	 * @param WC_Order $order The order that was refunded.
+	 * @param array    $lines The refunded lines, keyed by order item ID.
+	 *
+	 * @return void
+	 */
 	private function save_refunded_items( WC_Order $order, array $lines ) {
 		$order_lines = array();
 		foreach ( $lines as $item_id => $line ) {
@@ -592,28 +600,27 @@ class Swedbank_Pay_Payment_Actions {
 			);
 		}
 
-		// Append to exists list if applicable
 		$current_items = $order->get_meta( '_payex_refunded_items' );
 		$current_items = empty( $current_items ) ? array() : (array) $current_items;
-		if ( count( $current_items ) > 0 ) {
+
+		foreach ( $order_lines as $order_line ) {
+			$is_found = false;
 			foreach ( $current_items as &$current_item ) {
-				foreach ( $order_lines as $order_line ) {
-					if ( $order_line[ Swedbank_Pay_Order_Item::FIELD_REFERENCE ] === $current_item[ Swedbank_Pay_Order_Item::FIELD_REFERENCE ] ) {
-						$current_item[ Swedbank_Pay_Order_Item::FIELD_QTY ] += $order_line[ Swedbank_Pay_Order_Item::FIELD_QTY ];
-						break;
-					} else {
-						$current_items[] = $order_line;
-					}
+				if ( $current_item[ Swedbank_Pay_Order_Item::FIELD_REFERENCE ] === $order_line[ Swedbank_Pay_Order_Item::FIELD_REFERENCE ] ) {
+					$current_item[ Swedbank_Pay_Order_Item::FIELD_QTY ] += $order_line[ Swedbank_Pay_Order_Item::FIELD_QTY ];
+					$is_found = true;
+
+					break;
 				}
 			}
 
-			$order->update_meta_data( '_payex_refunded_items', $current_items );
-			$order->save_meta_data();
-
-			return;
+			if ( ! $is_found ) {
+				$current_items[] = $order_line;
+			}
 		}
+		unset( $current_item );
 
-		$order->update_meta_data( '_payex_refunded_items', $order_lines );
+		$order->update_meta_data( '_payex_refunded_items', $current_items );
 		$order->save_meta_data();
 	}
 }
