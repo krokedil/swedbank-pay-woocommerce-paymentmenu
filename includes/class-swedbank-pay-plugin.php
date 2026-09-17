@@ -27,7 +27,6 @@ class Swedbank_Pay_Plugin {
 	);
 
 	const PLUGIN_NAME             = 'Swedbank Pay Payment Menu';
-	const SUPPORT_EMAIL           = 'support.ecom@payex.com';
 	const DB_VERSION              = '1.0.0';
 	const DB_VERSION_SLUG         = 'swedbank_pay_menu_version';
 	const ADMIN_UPGRADE_PAGE_SLUG = 'swedbank-pay-menu-upgrade';
