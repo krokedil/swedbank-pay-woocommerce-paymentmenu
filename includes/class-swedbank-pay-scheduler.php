@@ -111,6 +111,17 @@ class Swedbank_Pay_Scheduler {
 			return false;
 		}
 
+		// Resolve any reversals that were accepted asynchronously (HTTP 202); the payee
+		// callback is the signal that their result is now available on the payment order.
+		$async_reversal = Swedbank_Pay()->async_reversal();
+		if ( $async_reversal->has_pending( $order ) ) {
+			$result = $async_reversal->check_pending_reversals( $order );
+			if ( is_wp_error( $result ) ) {
+				$context['error'] = $result->get_error_message();
+				Swedbank_Pay()->logger()->error( '[SCHEDULER]: Failed to check pending reversals.', $context );
+			}
+		}
+
 		// v3.1 callbacks no longer carry a transaction.number; finalize_payment falls back
 		// to the paymentOrder's `paid` resource to discover the right transaction.
 		// process_transaction() dedupes by financial transaction id internally.
