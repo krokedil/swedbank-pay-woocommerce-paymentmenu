@@ -474,15 +474,22 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 		);
 
 		foreach ( InstrumentsUtility::get_instruments() as $key => $instrument ) {
+			$is_available = InstrumentsUtility::is_instrument_available( $key );
+
 			$this->form_fields[ "enable_instrument_$key" ] = array(
 				// translators: %s is the name of the payment method/instrument.
-				'title'   => sprintf( __( 'Enable %s', 'swedbank-pay-payment-menu' ), $instrument['name'] ),
-				'type'    => 'checkbox',
+				'title'       => sprintf( __( 'Enable %s', 'swedbank-pay-payment-menu' ), $instrument['name'] ),
+				'type'        => 'checkbox',
 				// translators: %s is the name of the payment method/instrument.
-				'label'   => sprintf( __( 'Enable %s as a separate payment method', 'swedbank-pay-payment-menu' ), $instrument['name'] ),
-				'default' => 'no',
-				'class'   => 'instrument-setting instrument-setting-' . $key,
+				'label'       => sprintf( __( 'Enable %s as a separate payment method', 'swedbank-pay-payment-menu' ), $instrument['name'] ),
+				'description' => $is_available ? '' : __( 'Not activated on your Swedbank Pay account. Contact Swedbank Pay to have it enabled.', 'swedbank-pay-payment-menu' ),
+				'default'     => 'no',
+				'class'       => 'instrument-setting instrument-setting-' . $key,
 			);
+
+			if ( ! $is_available ) {
+				$this->form_fields[ "enable_instrument_$key" ]['custom_attributes'] = array( 'disabled' => 'disabled' );
+			}
 		}
 
 		// Extend with settings with logging option.
@@ -600,6 +607,19 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 			}
 		}
 
+		// A locked instrument's checkbox is disabled, so it isn't POSTed — inject its stored value back
+		// into $_POST so WC_Settings_API::validate_checkbox_field() doesn't silently flip it to 'no'.
+		foreach ( InstrumentsUtility::get_instruments() as $key => $instrument ) {
+			if ( InstrumentsUtility::is_instrument_available( $key ) ) {
+				continue;
+			}
+
+			$setting_key = "enable_instrument_$key";
+			if ( wc_string_to_bool( $this->settings[ $setting_key ] ?? 'no' ) ) {
+				$_POST[ $this->get_field_key( $setting_key ) ] = $this->settings[ $setting_key ]; // phpcs:ignore WordPress.Security.NonceVerification
+			}
+		}
+
 		$result = parent::process_admin_options();
 
 		// Reload settings.
@@ -618,6 +638,9 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 		} catch ( \Exception $e ) {
 			WC_Admin_Settings::add_error( $e->getMessage() );
 		}
+
+		// Refresh the account's activated instruments so a credentials/mode change takes effect immediately.
+		InstrumentsUtility::refresh_account_instruments();
 
 		return $result;
 	}

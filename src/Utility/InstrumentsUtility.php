@@ -76,6 +76,13 @@ class InstrumentsUtility {
 	}
 
 	/**
+	 * The option name used to store the instruments activated on the Swedbank Pay account.
+	 *
+	 * @var string
+	 */
+	const ACCOUNT_INSTRUMENTS_OPTION = 'swedbank_pay_account_instruments';
+
+	/**
 	 * See if the given instrument is enabled in the settings or not.
 	 *
 	 * @param string $instrument_key The key of the instrument to check, e.g. 'credit_card'.
@@ -92,7 +99,7 @@ class InstrumentsUtility {
 	}
 
 	/**
-	 * Get all enabled instruments based on the settings.
+	 * Get all enabled instruments based on the settings, limited to the ones activated on the Swedbank Pay account.
 	 *
 	 * @return array An array of enabled instruments, each instrument is an array with 'instrument' and 'name' keys.
 	 */
@@ -105,12 +112,117 @@ class InstrumentsUtility {
 		$enabled_instruments = array();
 
 		foreach ( self::get_instruments() as $key => $instrument ) {
-			if ( self::is_instrument_enabled( $key ) ) {
+			if ( self::is_instrument_enabled( $key ) && self::is_instrument_available( $key ) ) {
 				$enabled_instruments[ $key ] = $instrument;
 			}
 		}
 
 		return $enabled_instruments;
+	}
+
+	/**
+	 * Get the instruments activated on the Swedbank Pay account, as stored from the last successful fetch.
+	 *
+	 * Returns null when nothing has been fetched successfully yet, or when the stored data belongs to a
+	 * different payee id/mode than the one currently configured (e.g. after a credentials change) — callers
+	 * should treat null as "unknown" and fail open.
+	 *
+	 * @return string[]|null Base instrument names (e.g. 'CreditCard', 'Invoice'), or null if unknown.
+	 */
+	public static function get_account_instruments() {
+		$stored = get_option( self::ACCOUNT_INSTRUMENTS_OPTION, null );
+		if ( empty( $stored ) || ! isset( $stored['cache_key'], $stored['instruments'] ) ) {
+			return null;
+		}
+
+		if ( self::get_account_instruments_cache_key() !== $stored['cache_key'] ) {
+			return null;
+		}
+
+		return $stored['instruments'];
+	}
+
+	/**
+	 * Check whether the given instrument is activated on the Swedbank Pay account.
+	 *
+	 * Fails open (returns true) when the account's activated instruments are unknown, so a fetch failure
+	 * or a fresh install never removes a live payment method or locks a merchant out of their settings.
+	 *
+	 * @param string $instrument_key The key of the instrument to check, e.g. 'credit_card'.
+	 *
+	 * @return bool
+	 */
+	public static function is_instrument_available( $instrument_key ) {
+		$account_instruments = self::get_account_instruments();
+		if ( null === $account_instruments ) {
+			return true;
+		}
+
+		$instrument = self::get_instruments()[ $instrument_key ]['instrument'] ?? null;
+		if ( null === $instrument ) {
+			return false;
+		}
+
+		// The account configuration reports base instrument names (e.g. 'Invoice'), while this plugin
+		// stores/sends sub-typed values (e.g. 'Invoice-PayExFinancingSe') — match on the base name.
+		$base_instrument = strtok( $instrument, '-' );
+
+		return in_array( $base_instrument, $account_instruments, true );
+	}
+
+	/**
+	 * Fetch the instruments activated on the Swedbank Pay account and store them, replacing any previous
+	 * value only on success. Called on settings save and from the daily refresh cron event.
+	 *
+	 * @return void
+	 */
+	public static function refresh_account_instruments() {
+		$gateway = SettingsUtility::get_gateway_class();
+		if ( ! $gateway || empty( $gateway->access_token ) || empty( $gateway->payee_id ) ) {
+			return;
+		}
+
+		$result = $gateway->api->request( 'GET', '/psp/paymentorders/configurations' );
+		if ( is_wp_error( $result ) ) {
+			// The request itself already logged the failure — nothing more to do. Keep any previously
+			// stored value so we keep restricting instruments based on the last known-good response.
+			return;
+		}
+
+		$purchase_operation = null;
+		foreach ( $result['operations'] ?? array() as $operation ) {
+			if ( 'Purchase' === ( $operation['rel'] ?? null ) ) {
+				$purchase_operation = $operation;
+				break;
+			}
+		}
+
+		if ( null === $purchase_operation || ! isset( $purchase_operation['availableInstruments'] ) ) {
+			return;
+		}
+
+		update_option(
+			self::ACCOUNT_INSTRUMENTS_OPTION,
+			array(
+				'cache_key'   => self::get_account_instruments_cache_key(),
+				'instruments' => $purchase_operation['availableInstruments'],
+				'fetched_at'  => time(),
+			)
+		);
+	}
+
+	/**
+	 * Build the cache key identifying which payee id/mode a stored account-instruments value belongs to.
+	 *
+	 * Reads the raw settings directly rather than going through SettingsUtility::get_gateway_class(),
+	 * since that resolves the registered payment gateways — which, via SplitInstrumentGateway's own
+	 * registration, calls back into get_enabled_instruments()/is_instrument_available() and would recurse
+	 * into this method.
+	 *
+	 * @return string
+	 */
+	private static function get_account_instruments_cache_key() {
+		return md5( SettingsUtility::get_setting( 'payee_id', '' ) . '|' . SettingsUtility::get_setting( 'testmode', 'no' ) );
 	}
 
 	/**
