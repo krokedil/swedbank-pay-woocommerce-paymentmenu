@@ -42,11 +42,9 @@ class Swedbank_Pay_Admin {
 		// Add Admin Backend Actions
 		add_action( 'wp_ajax_swedbank_pay_capture', array( $this, 'ajax_swedbank_pay_capture' ) );
 		add_action( 'wp_ajax_swedbank_pay_cancel', array( $this, 'ajax_swedbank_pay_cancel' ) );
-		add_action( 'wp_ajax_swedbank_pay_refund', array( $this, 'ajax_swedbank_pay_refund' ) );
 		add_action( 'wp_ajax_swedbank_pay_get_refund_mode', array( $this, 'ajax_swedbank_pay_get_refund_mode' ) );
 
-		// Remove "Order fully refunded" hook. See wc_order_fully_refunded()
-		remove_action( 'woocommerce_order_status_refunded', 'wc_order_fully_refunded' );
+		add_action( 'woocommerce_order_status_refunded', __CLASS__ . '::refund_before_core_fallback', 1, 3 );
 		add_action( 'woocommerce_order_status_changed', __CLASS__ . '::order_status_changed_transaction', 0, 3 );
 
 		// Refund actions
@@ -72,6 +70,20 @@ class Swedbank_Pay_Admin {
 				5 * MINUTE_IN_SECONDS
 			);
 		}
+	}
+
+	/**
+	 * Refund ahead of core's wc_order_fully_refunded() at priority 10, so core finds
+	 * nothing left to refund and adds no second refund record of its own.
+	 *
+	 * @param int      $order_id
+	 * @param WC_Order $order
+	 * @param array    $status_transition
+	 * @return void
+	 * @SuppressWarnings(PHPMD.UnusedFormalParameter)
+	 */
+	public static function refund_before_core_fallback( $order_id, $order, $status_transition = array() ) {
+		self::order_status_changed_transaction( $order_id, $status_transition['from'] ?? '', 'refunded' );
 	}
 
 	/**
@@ -274,48 +286,6 @@ class Swedbank_Pay_Admin {
 		}
 
 		wp_send_json_success( __( 'Cancel success.', 'swedbank-pay-payment-menu' ) );
-	}
-
-	/**
-	 * Action for Full Refund.
-	 *
-	 * @SuppressWarnings(PHPMD.Superglobals)
-	 * @SuppressWarnings(PHPMD.ExitExpression)
-	 */
-	public function ajax_swedbank_pay_refund() {
-		check_ajax_referer( 'swedbank_pay', 'nonce' );
-
-		remove_action(
-			'woocommerce_order_status_changed',
-			__CLASS__ . '::order_status_changed_transaction',
-			0
-		);
-
-		$order_id = filter_input( INPUT_POST, 'order_id', FILTER_SANITIZE_NUMBER_INT );
-		$order    = wc_get_order( $order_id );
-		$gateway  = swedbank_pay_get_payment_method( $order );
-		if ( ! $gateway ) {
-			throw new Exception( 'Payment gateway is not available' );
-		}
-
-		// Do refund
-		$result = $gateway->payment_actions_handler->refund_payment(
-			$order,
-			swedbank_pay_get_available_line_items_for_refund( $order ),
-			__( 'Full refund.', 'swedbank-pay-payment-menu' ),
-			true
-		);
-		if ( is_wp_error( Swedbank_Pay()->system_report()->request( $result ) ) ) {
-			/** @var \WP_Error $result */
-			wp_send_json_error( join( '; ', $result->get_error_messages() ) );
-
-			return;
-		}
-
-		// @todo Create credit memo with order lines
-
-		// Refund will be created on transaction processing
-		wp_send_json_success( __( 'Refund has been successful.', 'swedbank-pay-payment-menu' ) );
 	}
 
 	/**
@@ -525,8 +495,8 @@ class Swedbank_Pay_Admin {
 					$transient_id = "sb_refund_prevent_online_refund_{$order_id}";
 					$refund_id    = get_transient( $transient_id );
 					if ( ! empty( $refund_id ) ) {
+						// Left to expire on its own, so the guard still holds if this runs more than once.
 						Swedbank_Pay()->logger()->info( "[ORDER MANAGEMENT]: The order {$order->get_order_number()} is flagged as not eligible for online refund.", $context );
-						delete_transient( $transient_id );
 						return;
 					}
 
@@ -547,12 +517,12 @@ class Swedbank_Pay_Admin {
 
 					break;
 			}
-		} catch ( Exception $exception ) {
+		} catch ( \Throwable $exception ) {
 			$context['error'] = $exception->getMessage();
 			Swedbank_Pay()->logger()->error( "[ORDER MANAGEMENT]: Order status change action error for order #{$order->get_order_number()}: {$exception->getMessage()}", $context );
 			\WC_Admin_Meta_Boxes::add_error( "Order status change action error: {$exception->getMessage()}" );
 
-			// Rollback status.
+			// Prevent re-entry when the order note below is saved.
 			remove_action(
 				'woocommerce_order_status_changed',
 				__CLASS__ . '::order_status_changed_transaction',

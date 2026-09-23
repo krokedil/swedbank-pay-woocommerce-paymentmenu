@@ -390,34 +390,8 @@ class Swedbank_Pay_Payment_Actions {
 			0
 		);
 
-		$refund_order = $order->get_refunds();
-		$refund_order = reset( $refund_order );
-		$result       = $this->gateway->api->refund_checkout( $refund_order );
-		if ( is_wp_error( Swedbank_Pay()->system_report()->request( $result ) ) ) {
-			$order->add_order_note(
-				'Refund has been failed. Error: ' . $result->get_error_message()
-			);
-
-			return $result;
-		}
-
-		$transaction_id = $result['number'];
-
-		$order->add_order_note(
-			\sprintf(
-			/* translators: 1: transaction 2: state 3: reason */                __(
-				'Refund process has been executed from order admin. Transaction ID: %1$s. State: %2$s. Reason: %3$s', //phpcs:ignore
-				'swedbank-pay-payment-menu' //phpcs:ignore
-			), //phpcs:ignore
-				$transaction_id,
-				$result['state'],
-				empty( $reason ) ? '-' : $reason
-			)
-		);
-
-		$this->save_refunded_items( $order, $lines );
-
-		// Create Credit Memo.
+		// Create Credit Memo. refund_checkout() builds the reversal from it, so it must exist first.
+		$refund = null;
 		if ( $create_credit_memo ) {
 			$amount = 0;
 			foreach ( $items as $item ) {
@@ -450,8 +424,45 @@ class Swedbank_Pay_Payment_Actions {
 						join( '; ', $refund->get_error_messages() )
 					)
 				);
+
+				return $refund;
 			}
 		}
+
+		$refund_order = $refund ? $refund : reset( $order->get_refunds() );
+		if ( ! $refund_order instanceof \WC_Order_Refund ) {
+			return new \WP_Error( 'error', 'Unable to retrieve the refund to send to Swedbank Pay.' );
+		}
+
+		$result = $this->gateway->api->refund_checkout( $refund_order );
+		if ( is_wp_error( Swedbank_Pay()->system_report()->request( $result ) ) ) {
+			$order->add_order_note(
+				'Refund has been failed. Error: ' . $result->get_error_message()
+			);
+
+			// Drop it, so core's wc_order_fully_refunded() fallback still sees an unrefunded order.
+			if ( $refund ) {
+				$refund->delete( true );
+			}
+
+			return $result;
+		}
+
+		$transaction_id = $result['number'];
+
+		$order->add_order_note(
+			\sprintf(
+			/* translators: 1: transaction 2: state 3: reason */                __(
+				'Refund process has been executed from order admin. Transaction ID: %1$s. State: %2$s. Reason: %3$s', //phpcs:ignore
+				'swedbank-pay-payment-menu' //phpcs:ignore
+			), //phpcs:ignore
+				$transaction_id,
+				$result['state'],
+				empty( $reason ) ? '-' : $reason
+			)
+		);
+
+		$this->save_refunded_items( $order, $lines );
 
 		return true;
 	}
