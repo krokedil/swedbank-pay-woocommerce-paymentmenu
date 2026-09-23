@@ -377,7 +377,8 @@ class InlineEmbedded extends CheckoutFlow {
 			}
 		} catch ( \Exception $e ) {
 			self::unset_embedded_session_data();
-			wc_add_notice( ErrorUtility::customer_message( new WP_Error( 'swedbank_pay_error', $e->getMessage() ) ), 'error' );
+			$order = swedbank_pay_get_order_by_payee_reference( $this->payee_reference );
+			wc_add_notice( ErrorUtility::customer_message( new WP_Error( 'swedbank_pay_error', $e->getMessage() ), $order ), 'error' );
 			wp_safe_redirect( wc_get_checkout_url() );
 			exit;
 		}
