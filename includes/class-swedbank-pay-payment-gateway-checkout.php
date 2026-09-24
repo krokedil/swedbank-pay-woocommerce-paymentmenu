@@ -229,23 +229,26 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 	 */
 	public static function locale_to_culture() {
 		$locale = get_locale();
+		$mapped = $locale;
 
 		// Format exceptions for locales that do not match the expected format, e.g. fi_FI for Finnish in Finland.
-		switch ( $locale ) {
+		switch ( $mapped ) {
 			case 'fi':
-				$locale = 'fi_FI';
+				$mapped = 'fi_FI';
 				break;
 			case 'et':
-				$locale = 'et_EE';
+				$mapped = 'et_EE';
 				break;
 			case 'lv':
-				$locale = 'lv_LV';
+				$mapped = 'lv_LV';
 				break;
 			default:
 				break;
 		}
 
-		return substr( str_replace( '_', '-', $locale ), 0, 5 );
+		$culture = substr( str_replace( '_', '-', $mapped ), 0, 5 );
+
+		return apply_filters( 'swedbank_pay_culture', $culture, $locale );
 	}
 
 	/**
@@ -255,8 +258,7 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 	 * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
 	 */
 	public function init_form_fields() {
-		$portal_url = 'yes' === $this->testmode ? 'https://merchantportal.externalintegration.swedbankpay.com' :
-			'https://merchantportal.swedbankpay.com';
+		$portal_url = 'https://merchantportal.swedbankpay.com';
 
 		// Define checkout flow options.
 		$flow_options = array(
@@ -604,6 +606,7 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 		$this->init_settings();
 		$this->access_token = isset( $this->settings['access_token'] ) ? $this->settings['access_token'] : $this->access_token; // phpcs:ignore
 		$this->payee_id     = isset( $this->settings['payee_id'] ) ? $this->settings['payee_id'] : $this->payee_id;
+		$this->testmode     = isset( $this->settings['testmode'] ) ? $this->settings['testmode'] : $this->testmode;
 
 		// Test API Credentials.
 		try {
@@ -691,13 +694,13 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 			return parent::get_transaction_url( $order );
 		}
 
-		if ( wc_string_to_bool( $this->testmode ) ) {
-			$view_transaction_url = 'https://merchantportal.externalintegration.swedbankpay.com/ecom/paymentorders;id=%s';
-		} else {
-			$view_transaction_url = 'https://merchantportal.swedbankpay.com/ecom/payments/details;id=%s';
-		}
+		// The meta value is a resource path (e.g. "/psp/paymentorders/{uuid}");
+		// the merchant portal link expects only the trailing UUID.
+		$payment_uuid = basename( untrailingslashit( $payment_order_id ) );
 
-		return sprintf( $view_transaction_url, rawurlencode( $payment_order_id ) );
+		$view_transaction_url = 'https://merchantportal.swedbankpay.com/psp/transactions/paymentorder/%s';
+
+		return sprintf( $view_transaction_url, rawurlencode( $payment_uuid ) );
 	}
 
 	/**
