@@ -221,13 +221,17 @@ class Cart extends PaymentDataHelper {
 			->setOperation( $verify ? self::OPERATION_VERIFY : self::OPERATION_PURCHASE )
 			->setCurrency( get_woocommerce_currency() )
 			->setDescription(
-				apply_filters(
-					'swedbank_pay_payment_description',
-					sprintf(
-						/* translators: 1: order id */
-						__( 'Order #%1$s', 'swedbank-pay-payment-menu' ),
-						self::get_payee_reference()
-					)
+				mb_substr(
+					apply_filters(
+						'swedbank_pay_payment_description',
+						sprintf(
+							/* translators: 1: order id */
+							__( 'Order #%1$s', 'swedbank-pay-payment-menu' ),
+							self::get_payee_reference()
+						)
+					),
+					0,
+					40
 				)
 			)
 			->setUserAgent( $this->user_agent )
