@@ -17,7 +17,7 @@ class ErrorUtility {
 	 * @return string
 	 */
 	public static function get_invalid_phone_message() {
-		return apply_filters( 'swedbank_pay_invalid_phone_message', 'Your phone number format is wrong. Please input with country code, for example like this +46707777777' );
+		return apply_filters( 'swedbank_pay_invalid_phone_message', __( 'Your phone number format is wrong. Please input with country code, for example like this +46707777777', 'swedbank-pay-payment-menu' ) );
 	}
 
 	/**
@@ -27,7 +27,7 @@ class ErrorUtility {
 	 * @return string
 	 */
 	public static function get_invalid_street_address_message() {
-		return apply_filters( 'swedbank_pay_invalid_street_address_message', 'Street address can have a max length of 40 and only contain normal characters' );
+		return apply_filters( 'swedbank_pay_invalid_street_address_message', __( 'Street address can have a max length of 40 and only contain normal characters', 'swedbank-pay-payment-menu' ) );
 	}
 
 	/**
