@@ -8,11 +8,44 @@ defined( 'ABSPATH' ) || exit;
  */
 class InstrumentsUtility {
 	/**
-	 * Get all the instruments for Swedbank pay.
+	 * Get all the instruments for Swedbank Pay: the known ones, plus any other the account reports as activated.
 	 *
 	 * @return array{string: array{instrument: string, name: string, supports: string[] } }
 	 */
 	public static function get_instruments() {
+		$instruments = self::get_known_instruments();
+
+		$known_base_names = array_map(
+			function ( $instrument ) {
+				return strtok( $instrument['instrument'], '-' );
+			},
+			$instruments
+		);
+
+		// Offer instruments the account reports but this plugin doesn't know yet, labelled with their API name.
+		foreach ( self::get_account_instruments() ?? array() as $account_instrument ) {
+			$key = sanitize_key( strtolower( preg_replace( '/(?<!^)[A-Z]/', '_$0', $account_instrument ) ) );
+			if ( empty( $key ) || isset( $instruments[ $key ] ) || in_array( $account_instrument, $known_base_names, true ) ) {
+				continue;
+			}
+
+			$instruments[ $key ] = array(
+				'instrument' => $account_instrument,
+				'name'       => $account_instrument,
+			);
+		}
+
+		return $instruments;
+	}
+
+	/**
+	 * Get the instruments this plugin has a translated name and supports list for.
+	 *
+	 * The keys form the gateway id and settings keys, so they must never change.
+	 *
+	 * @return array{string: array{instrument: string, name: string, supports: string[] } }
+	 */
+	private static function get_known_instruments() {
 		return array(
 			'credit_card'                      => array(
 				'instrument' => 'CreditCard',
@@ -123,9 +156,7 @@ class InstrumentsUtility {
 	/**
 	 * Get the instruments activated on the Swedbank Pay account, as stored from the last successful fetch.
 	 *
-	 * Returns null when nothing has been fetched successfully yet, or when the stored data belongs to a
-	 * different payee id/mode than the one currently configured (e.g. after a credentials change) — callers
-	 * should treat null as "unknown" and fail open.
+	 * Null means unknown (never fetched, or fetched for another payee id/mode) and callers should fail open.
 	 *
 	 * @return string[]|null Base instrument names (e.g. 'CreditCard', 'Invoice'), or null if unknown.
 	 */
@@ -145,8 +176,7 @@ class InstrumentsUtility {
 	/**
 	 * Check whether the given instrument is activated on the Swedbank Pay account.
 	 *
-	 * Fails open (returns true) when the account's activated instruments are unknown, so a fetch failure
-	 * or a fresh install never removes a live payment method or locks a merchant out of their settings.
+	 * Returns true when the account's instruments are unknown, so a failed fetch never removes a payment method.
 	 *
 	 * @param string $instrument_key The key of the instrument to check, e.g. 'credit_card'.
 	 *
@@ -171,8 +201,7 @@ class InstrumentsUtility {
 	}
 
 	/**
-	 * Fetch the instruments activated on the Swedbank Pay account and store them, replacing any previous
-	 * value only on success. Called on settings save and from the daily refresh cron event.
+	 * Fetch and store the instruments activated on the Swedbank Pay account, keeping the old value on failure.
 	 *
 	 * @return void
 	 */
@@ -184,8 +213,7 @@ class InstrumentsUtility {
 
 		$result = $gateway->api->request( 'GET', '/psp/paymentorders/configurations' );
 		if ( is_wp_error( $result ) ) {
-			// The request itself already logged the failure — nothing more to do. Keep any previously
-			// stored value so we keep restricting instruments based on the last known-good response.
+			// The request already logged the failure; keep the last known-good value.
 			return;
 		}
 
@@ -214,15 +242,14 @@ class InstrumentsUtility {
 	/**
 	 * Build the cache key identifying which payee id/mode a stored account-instruments value belongs to.
 	 *
-	 * Reads the raw settings directly rather than going through SettingsUtility::get_gateway_class(),
-	 * since that resolves the registered payment gateways — which, via SplitInstrumentGateway's own
-	 * registration, calls back into get_enabled_instruments()/is_instrument_available() and would recurse
-	 * into this method.
+	 * Reads the option directly: SettingsUtility's static copy predates a settings save in the same request.
 	 *
 	 * @return string
 	 */
 	private static function get_account_instruments_cache_key() {
-		return md5( SettingsUtility::get_setting( 'payee_id', '' ) . '|' . SettingsUtility::get_setting( 'testmode', 'no' ) );
+		$settings = get_option( 'woocommerce_payex_checkout_settings', array() );
+
+		return md5( ( $settings['payee_id'] ?? '' ) . '|' . wc_bool_to_string( $settings['testmode'] ?? 'no' ) );
 	}
 
 	/**
