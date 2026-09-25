@@ -16,6 +16,7 @@ use WC_Payment_Gateway;
 use Swedbank_Pay_Payment_Gateway_Checkout;
 use Krokedil\Swedbank\Pay\Helpers\Order;
 use Krokedil\Swedbank\Pay\Helpers\Cart;
+use Krokedil\Swedbank\Pay\Utility\ErrorUtility;
 use Krokedil\Swedbank\Pay\Utility\LogUtility;
 use KrokedilSwedbankPayDeps\SwedbankPay\Api\Client\Exception as ClientException;
 use KrokedilSwedbankPayDeps\SwedbankPay\Api\Service\Data\ResponseInterface as ResponseServiceInterface;
@@ -1543,13 +1544,13 @@ class Swedbank_Pay_Api {
 					strpos( $problem['name'], 'HomePhoneNumber' ) !== false ||
 					strpos( $problem['name'], 'WorkPhoneNumber' ) !== false
 				) {
-					$message = 'Your phone number format is wrong. Please input with country code, for example like this +46707777777'; //phpcs:ignore
+					$message = ErrorUtility::get_invalid_phone_message();
 
 					break;
 				}
 
 				if ( strpos( $problem['name'], 'StreetAddress' ) !== false ) {
-					$message = 'Street address can have a max length of 40 and only contain normal characters';
+					$message = ErrorUtility::get_invalid_street_address_message();
 
 					break;
 				}
