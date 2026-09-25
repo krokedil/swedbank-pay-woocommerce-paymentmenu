@@ -1378,6 +1378,8 @@ class Swedbank_Pay_Api {
 	/**
 	 * Get the description for a capture, cancel or refund transaction.
 	 *
+	 * Swedbank Pay rejects a transaction description longer than 40 characters, so it is truncated.
+	 *
 	 * @param string   $description The default description.
 	 * @param WC_Order $order The order the transaction belongs to.
 	 * @param string   $type The transaction type, one of the TYPE_* constants.
@@ -1385,14 +1387,20 @@ class Swedbank_Pay_Api {
 	 * @return string
 	 */
 	private function get_transaction_description( $description, $order, $type ) {
-		/**
-		 * Filters the description sent with a capture, cancel or refund transaction.
-		 *
-		 * @param string   $description The default description.
-		 * @param WC_Order $order The order the transaction belongs to. For a refund, this is the parent order.
-		 * @param string   $type The transaction type: 'Capture', 'Cancellation' or 'Reversal'.
-		 */
-		return (string) apply_filters( 'swedbank_pay_transaction_description', $description, $order, $type );
+		return mb_substr(
+			/**
+			 * Filters the description sent with a capture, cancel or refund transaction.
+			 *
+			 * The description is truncated to 40 characters, the maximum Swedbank Pay accepts.
+			 *
+			 * @param string   $description The default description.
+			 * @param WC_Order $order The order the transaction belongs to. For a refund, this is the parent order.
+			 * @param string   $type The transaction type: 'Capture', 'Cancellation' or 'Reversal'.
+			 */
+			(string) apply_filters( 'swedbank_pay_transaction_description', $description, $order, $type ),
+			0,
+			40
+		);
 	}
 
 	/**
