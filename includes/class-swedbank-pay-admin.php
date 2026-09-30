@@ -434,6 +434,14 @@ class Swedbank_Pay_Admin {
 			}
 		}
 
+		if ( 'refunded' === $new_status ) {
+			// Stores saved before this setting existed keep the old, WooCommerce-only refund.
+			$settings = get_option( 'woocommerce_payex_checkout_settings', array() );
+			if ( ! wc_string_to_bool( $settings['enable_order_refund'] ?? 'no' ) ) {
+				return;
+			}
+		}
+
 		$gateway = swedbank_pay_get_payment_method( $order );
 
 		$payment_order_id = $order->get_meta( '_payex_paymentorder_id' );

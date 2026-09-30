@@ -456,6 +456,12 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 				'label'   => __( 'Cancel payment on order status change to Cancelled', 'swedbank-pay-payment-menu' ),
 				'default' => 'yes',
 			),
+			'enable_order_refund'         => array(
+				'title'   => __( 'Refund on status change', 'swedbank-pay-payment-menu' ),
+				'type'    => 'checkbox',
+				'label'   => __( 'Refund payment on order status change to Refunded', 'swedbank-pay-payment-menu' ),
+				'default' => 'yes',
+			),
 
 			'separate_instruments'        => array(
 				'title' => __( 'Separate Instruments', 'swedbank-pay-payment-menu' ),
