@@ -76,9 +76,9 @@ class Swedbank_Pay_Admin {
 	 * Refund ahead of core's wc_order_fully_refunded() at priority 10, so core finds
 	 * nothing left to refund and adds no second refund record of its own.
 	 *
-	 * @param int      $order_id
-	 * @param WC_Order $order
-	 * @param array    $status_transition
+	 * @param int      $order_id The order ID.
+	 * @param WC_Order $order The order.
+	 * @param array    $status_transition The status transition, with the old status under 'from'.
 	 * @return void
 	 * @SuppressWarnings(PHPMD.UnusedFormalParameter)
 	 */
@@ -550,6 +550,13 @@ class Swedbank_Pay_Admin {
 					$exception->getMessage()
 				)
 			);
+
+			// The money was not returned, so flag the order for attention instead of showing it as refunded.
+			if ( 'refunded' === $new_status ) {
+				remove_action( 'woocommerce_order_status_refunded', 'wc_order_fully_refunded' );
+				delete_transient( "sb_refund_prevent_online_refund_{$order_id}" );
+				$order->update_status( 'on-hold', __( 'The refund could not be completed at Swedbank Pay.', 'swedbank-pay-payment-menu' ) );
+			}
 		}
 	}
 

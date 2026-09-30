@@ -448,7 +448,8 @@ class Swedbank_Pay_Payment_Actions {
 					'reason'         => $reason,
 					'line_items'     => $lines,
 					'refund_payment' => false,
-					'restock_items'  => true,
+					// Restocked below, once Swedbank Pay has accepted the reversal.
+					'restock_items'  => false,
 				)
 			);
 			if ( is_wp_error( $refund ) ) {
@@ -507,6 +508,10 @@ class Swedbank_Pay_Payment_Actions {
 		);
 
 		$this->save_refunded_items( $order, $lines );
+
+		if ( $refund ) {
+			wc_restock_refunded_items( $order, $lines );
+		}
 
 		return true;
 	}
