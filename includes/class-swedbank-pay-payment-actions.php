@@ -176,6 +176,49 @@ class Swedbank_Pay_Payment_Actions {
 	}
 
 	/**
+	 * Refund what is left of a partly refunded order, and record it in WooCommerce.
+	 * Uses the amount, since the refunded-items record misses refunds made by amount.
+	 *
+	 * @param WC_Order $order The order.
+	 * @param string   $reason The refund reason.
+	 *
+	 * @return \WP_Error|true
+	 */
+	public function refund_remaining_amount( $order, $reason ) {
+		$amount = (float) $order->get_remaining_refund_amount();
+		if ( $amount <= 0 ) {
+			return true;
+		}
+
+		$result = $this->refund_payment_amount( $order, $amount );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		$refund = wc_create_refund(
+			array(
+				'order_id'       => $order->get_id(),
+				'amount'         => $amount,
+				'reason'         => $reason,
+				'refund_payment' => false,
+				'restock_items'  => false,
+			)
+		);
+		if ( is_wp_error( $refund ) ) {
+			$order->add_order_note(
+				\sprintf(
+					'Refund could not be created. Error: %s',
+					join( '; ', $refund->get_error_messages() )
+				)
+			);
+
+			return $refund;
+		}
+
+		return true;
+	}
+
+	/**
 	 * Perform Refund.
 	 *
 	 * @param WC_Order $order
@@ -429,7 +472,8 @@ class Swedbank_Pay_Payment_Actions {
 			}
 		}
 
-		$refund_order = $refund ? $refund : reset( $order->get_refunds() );
+		$refunds      = $order->get_refunds();
+		$refund_order = $refund ? $refund : reset( $refunds );
 		if ( ! $refund_order instanceof \WC_Order_Refund ) {
 			return new \WP_Error( 'error', 'Unable to retrieve the refund to send to Swedbank Pay.' );
 		}

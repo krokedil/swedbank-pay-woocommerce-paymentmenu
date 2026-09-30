@@ -508,13 +508,17 @@ class Swedbank_Pay_Admin {
 						return;
 					}
 
-					$lines  = swedbank_pay_get_available_line_items_for_refund( $order );
-					$result = $gateway->payment_actions_handler->refund_payment(
-						$order,
-						$lines,
-						__( 'Order status changed to refunded.', 'swedbank-pay-payment-menu' ),
-						true
-					);
+					$reason = __( 'Order status changed to refunded.', 'swedbank-pay-payment-menu' );
+					if ( $order->get_total_refunded() > 0 ) {
+						$result = $gateway->payment_actions_handler->refund_remaining_amount( $order, $reason );
+					} else {
+						$result = $gateway->payment_actions_handler->refund_payment(
+							$order,
+							swedbank_pay_get_available_line_items_for_refund( $order ),
+							$reason,
+							true
+						);
+					}
 					if ( is_wp_error( Swedbank_Pay()->system_report()->request( $result ) ) ) {
 						/** @var \WP_Error $result */
 						throw new Exception( $result->get_error_message() );

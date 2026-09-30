@@ -1,4 +1,4 @@
 Type: Fix
-Needs Documentation: no
+Needs Documentation: yes
 
-Fixed an issue where setting an order's status to Refunded showed the order as fully refunded in WooCommerce without returning any money to the customer, so the refund had to be completed by hand in the Swedbank Pay portal.
+Setting an order's status to Refunded now refunds the payment at Swedbank Pay, including what is left on a partly refunded order. It can be turned off with the new "Refund on status change" setting.
