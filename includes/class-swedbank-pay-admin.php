@@ -50,7 +50,6 @@ class Swedbank_Pay_Admin {
 		// Refund actions
 		add_action( 'woocommerce_create_refund', array( $this, 'save_refund_parameters' ), 10, 2 );
 		add_action( 'woocommerce_order_refunded', array( $this, 'remove_refund_parameters' ), 10, 2 );
-		add_action( 'woocommerce_order_fully_refunded', array( $this, 'prevent_online_refund' ), 10, 2 );
 
 		add_filter(
 			'woocommerce_admin_order_should_render_refunds',
@@ -58,18 +57,6 @@ class Swedbank_Pay_Admin {
 			10,
 			3
 		);
-	}
-
-	public function prevent_online_refund( $order_id, $refund_id ) {
-		$order = wc_get_order( $order_id );
-		if ( swedbank_pay_is_payment_swedbank_method( $order->get_payment_method() ) ) {
-			// Prevent online refund when order status changed to "refunded"
-			set_transient(
-				'sb_refund_prevent_online_refund_' . $order_id,
-				$refund_id,
-				5 * MINUTE_IN_SECONDS
-			);
-		}
 	}
 
 	/**
@@ -500,11 +487,9 @@ class Swedbank_Pay_Admin {
 				case 'refunded':
 					$context['action'] = 'refund_order';
 					Swedbank_Pay()->logger()->info( "[ORDER MANAGEMENT]: Trying to refund #{$order->get_order_number()}", $context );
-					$transient_id = "sb_refund_prevent_online_refund_{$order_id}";
-					$refund_id    = get_transient( $transient_id );
-					if ( ! empty( $refund_id ) ) {
-						// Left to expire on its own, so the guard still holds if this runs more than once.
-						Swedbank_Pay()->logger()->info( "[ORDER MANAGEMENT]: The order {$order->get_order_number()} is flagged as not eligible for online refund.", $context );
+					// Already fully refunded, e.g. by a manual refund, which then sets this status.
+					if ( (float) $order->get_remaining_refund_amount() <= 0 ) {
+						Swedbank_Pay()->logger()->info( "[ORDER MANAGEMENT]: The order {$order->get_order_number()} has nothing left to refund.", $context );
 						return;
 					}
 
@@ -554,7 +539,6 @@ class Swedbank_Pay_Admin {
 			// The money was not returned, so flag the order for attention instead of showing it as refunded.
 			if ( 'refunded' === $new_status ) {
 				remove_action( 'woocommerce_order_status_refunded', 'wc_order_fully_refunded' );
-				delete_transient( "sb_refund_prevent_online_refund_{$order_id}" );
 				$order->update_status( 'on-hold', __( 'The refund could not be completed at Swedbank Pay.', 'swedbank-pay-payment-menu' ) );
 			}
 		}
