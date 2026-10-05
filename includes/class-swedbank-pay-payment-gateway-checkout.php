@@ -162,6 +162,9 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 			'multiple_subscriptions',
 		);
 
+		// Set before the form fields, which disable the checkout flow setting when the block checkout is used.
+		$this->block_checkout_enabled = BlocksUtility::is_checkout_block_enabled();
+
 		// Load the form fields.
 		$this->init_form_fields();
 
@@ -187,7 +190,6 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 		$this->terms_url                    = $this->settings['terms_url'] ?? get_site_url();
 		$this->autocomplete                 = $this->settings['autocomplete'] ?? 'no';
 		$this->exclude_order_lines          = wc_string_to_bool( $this->settings['exclude_order_lines'] ?? false );
-		$this->block_checkout_enabled       = BlocksUtility::is_checkout_block_enabled();
 		$this->checkout_flow                = ! $this->block_checkout_enabled ?
 			( $this->settings['checkout_flow'] ?? 'redirect' ) : 'redirect'; // Use the setting only if the block checkout is not enabled, otherwise force 'redirect'.
 		$this->separate_instruments_enabled = ( 'redirect' === $this->checkout_flow ) ?
@@ -248,6 +250,13 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 
 		$culture = substr( str_replace( '_', '-', $mapped ), 0, 5 );
 
+		/**
+		 * Filters the culture code that sets the language of the Swedbank Pay checkout.
+		 *
+		 * @since 4.6.2
+		 * @param string $culture The Swedbank Pay culture code mapped from the WordPress locale, e.g. 'sv-SE'.
+		 * @param string $locale  The WordPress locale, e.g. 'sv_SE'.
+		 */
 		return apply_filters( 'swedbank_pay_culture', $culture, $locale );
 	}
 
@@ -479,15 +488,24 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 			),
 		);
 
+		// $this->settings isn't loaded yet, and SettingsUtility's full load would build the gateway list again.
+		$saved_settings = SettingsUtility::get_stored_settings();
+
 		foreach ( InstrumentsUtility::get_instruments() as $key => $instrument ) {
+			$is_available = InstrumentsUtility::is_instrument_available( $instrument['instrument'] );
+			// Lock only unticked ones: an enabled instrument must stay untickable, as the admin notice asks.
+			$is_locked = ! $is_available && ! wc_string_to_bool( $saved_settings[ "enable_instrument_$key" ] ?? 'no' );
+
 			$this->form_fields[ "enable_instrument_$key" ] = array(
 				// translators: %s is the name of the payment method/instrument.
-				'title'   => sprintf( __( 'Enable %s', 'swedbank-pay-payment-menu' ), $instrument['name'] ),
-				'type'    => 'checkbox',
+				'title'             => sprintf( __( 'Enable %s', 'swedbank-pay-payment-menu' ), $instrument['name'] ),
+				'type'              => 'checkbox',
 				// translators: %s is the name of the payment method/instrument.
-				'label'   => sprintf( __( 'Enable %s as a separate payment method', 'swedbank-pay-payment-menu' ), $instrument['name'] ),
-				'default' => 'no',
-				'class'   => 'instrument-setting instrument-setting-' . $key,
+				'label'             => sprintf( __( 'Enable %s as a separate payment method', 'swedbank-pay-payment-menu' ), $instrument['name'] ),
+				'description'       => $is_available ? '' : __( 'Not activated on your Swedbank Pay account. Contact Swedbank Pay to have it enabled.', 'swedbank-pay-payment-menu' ),
+				'default'           => 'no',
+				'class'             => 'instrument-setting instrument-setting-' . $key,
+				'custom_attributes' => $is_locked ? array( 'disabled' => 'disabled' ) : array(),
 			);
 		}
 
@@ -529,6 +547,12 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 	 * @return boolean
 	 */
 	public function is_available() {
+		/**
+		 * Filters whether the Swedbank Pay payment gateway is available in the checkout.
+		 *
+		 * @param bool                                  $is_available Whether the gateway is available.
+		 * @param Swedbank_Pay_Payment_Gateway_Checkout $gateway      The gateway instance.
+		 */
 		return apply_filters( 'swedbank_pay_is_available', $this->check_availability(), $this );
 	}
 
@@ -609,6 +633,7 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 		$result = parent::process_admin_options();
 
 		// Reload settings.
+		SettingsUtility::reset_settings();
 		$this->init_settings();
 		$this->access_token = isset( $this->settings['access_token'] ) ? $this->settings['access_token'] : $this->access_token; // phpcs:ignore
 		$this->payee_id     = isset( $this->settings['payee_id'] ) ? $this->settings['payee_id'] : $this->payee_id;
@@ -625,7 +650,28 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 			WC_Admin_Settings::add_error( $e->getMessage() );
 		}
 
+		// Refresh the account's activated instruments so a credentials/mode change takes effect immediately,
+		// and rebuild the fields so the page rendered after this save shows the new locks.
+		InstrumentsUtility::refresh_account_instruments();
+		$this->init_form_fields();
+
 		return $result;
+	}
+
+	/**
+	 * Keep the stored checkout flow while the field is disabled for Block Checkout, since a disabled field is never POSTed.
+	 *
+	 * @param string      $key   Field key.
+	 * @param string|null $value Posted value.
+	 *
+	 * @return string
+	 */
+	public function validate_checkout_flow_field( $key, $value ) {
+		if ( $this->block_checkout_enabled ) {
+			return $this->settings[ $key ] ?? 'redirect';
+		}
+
+		return $this->validate_select_field( $key, $value );
 	}
 
 	/**
@@ -862,8 +908,14 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 			return new WP_Error( 'refund', __( 'Amount must be specified.', 'swedbank-pay-payment-menu' ) );
 		}
 
-		if ( 0 === absint( $amount ) ) {
+		if ( (int) round( (float) $amount * 100 ) <= 0 ) {
 			return new WP_Error( 'refund', __( 'Amount must be positive.', 'swedbank-pay-payment-menu' ) );
+		}
+
+		// Block new refunds while a previous reversal is awaiting confirmation from Swedbank Pay.
+		$pending_reversal_error = $this->api->maybe_block_pending_reversal( $order );
+		if ( is_wp_error( $pending_reversal_error ) ) {
+			return $pending_reversal_error;
 		}
 
 		// It uses transient `sb_refund_parameters_` to get items.

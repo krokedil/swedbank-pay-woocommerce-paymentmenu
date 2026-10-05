@@ -247,7 +247,7 @@ class Swedbank_Pay_Payment_Actions {
 		// Shipping and fee rows carry no quantity in the refund form, so they are
 		// kept on their refunded amount alone.
 		foreach ( $lines as $item_id => $line ) {
-			if ( (float) $line['refund_total'] <= 0.01 ) {
+			if ( (float) $line['refund_total'] < 0.01 ) {
 				unset( $lines[ $item_id ] );
 			}
 		}
@@ -348,6 +348,14 @@ class Swedbank_Pay_Payment_Actions {
 						$product_class = $product->get_meta( '_swedbank_pay_product_class' );
 
 						if ( empty( $product_class ) ) {
+							/**
+							 * Filters the class of a product order line sent to Swedbank Pay when refunding an order.
+							 *
+							 * Only applied when the product has no class set in its '_swedbank_pay_product_class' meta.
+							 *
+							 * @param string     $class   The product class. Default 'ProductGroup1'.
+							 * @param WC_Product $product The product of the order line.
+							 */
 							$product_class = apply_filters(
 								'swedbank_pay_product_class',
 								'ProductGroup1',
@@ -382,7 +390,13 @@ class Swedbank_Pay_Payment_Actions {
 					/** @var WC_Order_Item_Shipping $item */
 					$order_item[ Swedbank_Pay_Order_Item::FIELD_REFERENCE ] = 'shipping';
 					$order_item[ Swedbank_Pay_Order_Item::FIELD_TYPE ]      = Swedbank_Pay_Order_Item::TYPE_SHIPPING;
-					$order_item[ Swedbank_Pay_Order_Item::FIELD_CLASS ]     = apply_filters(
+					/**
+					 * Filters the class of the shipping order line sent to Swedbank Pay when refunding an order.
+					 *
+					 * @param string   $class The order line class. Default 'ProductGroup1'.
+					 * @param WC_Order $order The order being refunded.
+					 */
+					$order_item[ Swedbank_Pay_Order_Item::FIELD_CLASS ] = apply_filters(
 						'swedbank_pay_product_class_shipping',
 						'ProductGroup1',
 						$order
@@ -393,7 +407,13 @@ class Swedbank_Pay_Payment_Actions {
 					/** @var WC_Order_Item_Fee $item */
 					$order_item[ Swedbank_Pay_Order_Item::FIELD_REFERENCE ] = 'fee';
 					$order_item[ Swedbank_Pay_Order_Item::FIELD_TYPE ]      = Swedbank_Pay_Order_Item::TYPE_OTHER;
-					$order_item[ Swedbank_Pay_Order_Item::FIELD_CLASS ]     = apply_filters(
+					/**
+					 * Filters the class of a fee order line sent to Swedbank Pay when refunding an order.
+					 *
+					 * @param string   $class The order line class. Default 'ProductGroup1'.
+					 * @param WC_Order $order The order being refunded.
+					 */
+					$order_item[ Swedbank_Pay_Order_Item::FIELD_CLASS ] = apply_filters(
 						'swedbank_pay_product_class_fee',
 						'ProductGroup1',
 						$order
@@ -404,7 +424,13 @@ class Swedbank_Pay_Payment_Actions {
 					/** @var WC_Order_Item_Coupon $item */
 					$order_item[ Swedbank_Pay_Order_Item::FIELD_REFERENCE ] = 'coupon';
 					$order_item[ Swedbank_Pay_Order_Item::FIELD_TYPE ]      = Swedbank_Pay_Order_Item::TYPE_OTHER;
-					$order_item[ Swedbank_Pay_Order_Item::FIELD_CLASS ]     = apply_filters(
+					/**
+					 * Filters the class of a coupon order line sent to Swedbank Pay when refunding an order.
+					 *
+					 * @param string   $class The order line class. Default 'ProductGroup1'.
+					 * @param WC_Order $order The order being refunded.
+					 */
+					$order_item[ Swedbank_Pay_Order_Item::FIELD_CLASS ] = apply_filters(
 						'swedbank_pay_product_class_coupon',
 						'ProductGroup1',
 						$order
@@ -415,7 +441,13 @@ class Swedbank_Pay_Payment_Actions {
 					/** @var WC_Order_Item $item */
 					$order_item[ Swedbank_Pay_Order_Item::FIELD_REFERENCE ] = 'other';
 					$order_item[ Swedbank_Pay_Order_Item::FIELD_TYPE ]      = Swedbank_Pay_Order_Item::TYPE_OTHER;
-					$order_item[ Swedbank_Pay_Order_Item::FIELD_CLASS ]     = apply_filters(
+					/**
+					 * Filters the class of an order line of any other type sent to Swedbank Pay when refunding an order.
+					 *
+					 * @param string   $class The order line class. Default 'ProductGroup1'.
+					 * @param WC_Order $order The order being refunded.
+					 */
+					$order_item[ Swedbank_Pay_Order_Item::FIELD_CLASS ] = apply_filters(
 						'swedbank_pay_product_class_other',
 						'ProductGroup1',
 						$order
@@ -493,19 +525,23 @@ class Swedbank_Pay_Payment_Actions {
 			return $result;
 		}
 
-		$transaction_id = $result['number'];
+		$is_pending = ! empty( $result['pending'] );
 
-		$order->add_order_note(
-			\sprintf(
-			/* translators: 1: transaction 2: state 3: reason */                __(
-				'Refund process has been executed from order admin. Transaction ID: %1$s. State: %2$s. Reason: %3$s', //phpcs:ignore
-				'swedbank-pay-payment-menu' //phpcs:ignore
-			), //phpcs:ignore
-				$transaction_id,
-				$result['state'],
-				empty( $reason ) ? '-' : $reason
-			)
-		);
+		if ( ! $is_pending ) {
+			$transaction_id = $result['number'];
+
+			$order->add_order_note(
+				\sprintf(
+				/* translators: 1: transaction 2: state 3: reason */                    __(
+					'Refund process has been executed from order admin. Transaction ID: %1$s. State: %2$s. Reason: %3$s', //phpcs:ignore
+					'swedbank-pay-payment-menu' //phpcs:ignore
+				), //phpcs:ignore
+					$transaction_id,
+					$result['state'],
+					empty( $reason ) ? '-' : $reason
+				)
+			);
+		}
 
 		$this->save_refunded_items( $order, $lines );
 
@@ -545,7 +581,7 @@ class Swedbank_Pay_Payment_Actions {
 
 				// Skip zero products
 				$price_with_tax = (float) $order->get_line_subtotal( $item, true, false );
-				if ( $price_with_tax >= 0 && $price_with_tax <= 0.01 ) {
+				if ( $price_with_tax >= 0 && $price_with_tax < 0.01 ) {
 					continue;
 				}
 

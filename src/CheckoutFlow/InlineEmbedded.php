@@ -2,6 +2,7 @@
 namespace Krokedil\Swedbank\Pay\CheckoutFlow;
 
 use Krokedil\Swedbank\Pay\Helpers\PaymentDataHelper;
+use Krokedil\Swedbank\Pay\Utility\ErrorUtility;
 use KrokedilSwedbankPayDeps\SwedbankPay\Api\Service\Paymentorder\Resource\Request\Paymentorder;
 use SwedbankPay\Checkout\WooCommerce\Swedbank_Pay_Subscription;
 use WP_Error;
@@ -65,7 +66,7 @@ class InlineEmbedded extends CheckoutFlow {
 			$result = $this->create_or_update_embedded_purchase();
 
 			if ( is_wp_error( $result ) ) {
-				wc_add_notice( $result->get_error_message(), 'error' );
+				wc_add_notice( ErrorUtility::customer_message( $result ), 'error' );
 				return;
 			}
 		} else { // If this is on the payment complete return, verify the payment to make sure no errors occurred.
@@ -120,6 +121,17 @@ class InlineEmbedded extends CheckoutFlow {
 		WC()->session->__unset( 'swedbank_pay_payee_reference' );
 		WC()->session->__unset( 'swedbank_pay_should_reset_session' );
 		WC()->session->__unset( 'swedbank_pay_operation' );
+		WC()->session->__unset( 'swedbank_pay_billing_country' );
+	}
+
+	/**
+	 * Check if the billing country has changed since the payment order was created.
+	 *
+	 * @return bool
+	 */
+	private static function billing_country_changed() {
+		$session_country = WC()->session->get( 'swedbank_pay_billing_country' );
+		return null !== $session_country && WC()->customer->get_billing_country() !== $session_country;
 	}
 
 	/**
@@ -133,7 +145,7 @@ class InlineEmbedded extends CheckoutFlow {
 			return;
 		}
 
-		if ( WC()->session->get( 'swedbank_pay_should_reset_session' ) ) {
+		if ( WC()->session->get( 'swedbank_pay_should_reset_session' ) || self::billing_country_changed() ) {
 			self::unset_embedded_session_data();
 			WC()->session->set( 'reload_checkout', true );
 			return;
@@ -148,7 +160,7 @@ class InlineEmbedded extends CheckoutFlow {
 		$result = $this->api->update_embedded_purchase();
 
 		if ( is_wp_error( $result ) ) {
-			wc_add_notice( $result->get_error_message(), 'error' );
+			wc_add_notice( ErrorUtility::customer_message( $result ), 'error' );
 		}
 	}
 
@@ -173,7 +185,7 @@ class InlineEmbedded extends CheckoutFlow {
 
 				$session_operation = WC()->session->get( 'swedbank_pay_operation' );
 				$is_zero_order     = Swedbank_Pay_Subscription::cart_has_zero_order();
-				if ( ( PaymentDataHelper::OPERATION_PURCHASE === $session_operation && $is_zero_order ) || ( PaymentDataHelper::OPERATION_VERIFY === $session_operation && ! $is_zero_order ) ) {
+				if ( ( PaymentDataHelper::OPERATION_PURCHASE === $session_operation && $is_zero_order ) || ( PaymentDataHelper::OPERATION_VERIFY === $session_operation && ! $is_zero_order ) || self::billing_country_changed() ) {
 					// clear the session.
 					WC()->session->set( 'swedbank_pay_should_reset_session', true );
 					return array();
@@ -213,6 +225,7 @@ class InlineEmbedded extends CheckoutFlow {
 				WC()->session->set( 'swedbank_pay_update_order_url', $update_order_url );
 				WC()->session->set( 'swedbank_pay_view_checkout_url', $view_checkout_url );
 				WC()->session->set( 'swedbank_pay_operation', $operation );
+				WC()->session->set( 'swedbank_pay_billing_country', WC()->customer->get_billing_country() );
 			}
 
 			if ( is_wp_error( $result ) ) {
@@ -308,10 +321,9 @@ class InlineEmbedded extends CheckoutFlow {
 		// Initiate Payment Order.
 		$result = $this->api->get_embedded_purchase();
 		if ( is_wp_error( $result ) ) {
-			$code    = \is_int( $result->get_error_code() ) ? \intval( $result->get_error_code() ) : 500;
-			$message = ! empty( $result->get_error_message() ) ? $result->get_error_message() : __( 'The payment could not be initiated.', 'swedbank-pay-payment-menu' );
+			$code = \is_int( $result->get_error_code() ) ? \intval( $result->get_error_code() ) : 500;
 			throw new \Exception(
-				esc_html( $message ),
+				esc_html( ErrorUtility::customer_message( $result, $order ) ),
 				absint( $code )
 			);
 		}
@@ -377,7 +389,8 @@ class InlineEmbedded extends CheckoutFlow {
 			}
 		} catch ( \Exception $e ) {
 			self::unset_embedded_session_data();
-			wc_add_notice( $e->getMessage(), 'error' );
+			$order = swedbank_pay_get_order_by_payee_reference( $this->payee_reference );
+			wc_add_notice( ErrorUtility::customer_message( new WP_Error( 'swedbank_pay_error', $e->getMessage() ), $order ), 'error' );
 			wp_safe_redirect( wc_get_checkout_url() );
 			exit;
 		}

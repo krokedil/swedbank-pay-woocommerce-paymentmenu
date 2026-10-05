@@ -5,8 +5,8 @@ Requires at least: 5.3
 Tested up to: 7.1
 Requires PHP: 7.4
 WC requires at least: 5.5.1
-WC tested up to: 11.1.1
-Stable tag: 4.6.2
+WC tested up to: 11.1.2
+Stable tag: 4.7.0
 License: Apache License 2.0
 License URI: http://www.apache.org/licenses/LICENSE-2.0
 
@@ -95,6 +95,23 @@ You are now done with configuring our plugin.
 Please update to version 1.2.0.
 
 == Changelog ==
+= 2026.10.05    - version 4.7.0 =
+* Feature       - Added support for refunds that Swedbank Pay confirms after a delay, such as Banklink refunds in the Baltics. The refund is registered in WooCommerce right away, and the order is put on hold if Swedbank Pay later turns the refund down or never confirms it.
+* Feature       - Added a check that limits the separate instruments to the ones activated on the Swedbank Pay account, so a payment method that is not activated can no longer be enabled or offered at checkout.
+* Fix           - Fixed an issue in the Seamless Menu checkout where a change of billing country was not passed on to Swedbank Pay, so payment methods that depend on the shopper's country, such as Pay later, could be offered or hidden based on the country the checkout started with.
+* Fix           - Fixed an issue where a refund of less than 1 in the store currency, for example 0.50 EUR, was rejected with "Amount must be positive.", and where a refunded line of exactly 0.01 was left out of the refund.
+* Fix           - Fixed an issue where a full refund reported by Swedbank Pay in a callback could make the plugin try to refund the order a second time.
+* Fix           - Fixed an issue where the checkout flow setting could still be changed to Seamless Menu on a store using the Block Checkout, which only supports Redirect Menu.
+
+= 2026.09.28    - version 4.6.3 =
+* Enhancement   - Added a new `swedbank_pay_transaction_description` filter for changing the description sent to Swedbank Pay with a capture, cancellation or refund.
+* Enhancement   - Shoppers now see a generic error message when a Swedbank Pay payment fails, instead of the raw API error with internal field names. The full error is still recorded in the plugin log.
+* Fix           - Fixed an issue where the checkout could not be started when the payment order description exceeded Swedbank Pay's 40-character limit, for example after being extended through the `swedbank_pay_payment_description` filter.
+* Fix           - Fixed an issue where refunding an order by entering an amount, rather than selecting line items, was rejected by Swedbank Pay on any order that included VAT.
+* Fix           - Fixed an issue where the record of already refunded items was stored with duplicated rows and inflated quantities, which made the quantities offered for a later refund of the same order wrong.
+* Fix           - Fixed an issue where the shipping cost was left out of a refund, so the shipping was never returned to the customer even though WooCommerce showed the order as refunded.
+* Fix           - Fixed an issue where the shipping and fee amounts could not be entered on the order screen when taxes were enabled, which made it impossible to refund the shipping cost.
+
 = 2026.09.21    - version 4.6.2 =
 * Enhancement   - Added a new `swedbank_pay_culture` filter for overriding the checkout language.
 * Fix           - Fixed an issue in the inline embedded checkout where placing an order could abort a payment that was already in progress, leaving the order on Pending payment after the customer had paid.

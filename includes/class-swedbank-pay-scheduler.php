@@ -111,6 +111,17 @@ class Swedbank_Pay_Scheduler {
 			return false;
 		}
 
+		// Resolve any reversals that were accepted asynchronously (HTTP 202); the payee
+		// callback is the signal that their result is now available on the payment order.
+		$async_reversal = Swedbank_Pay()->async_reversal();
+		if ( $async_reversal->has_pending( $order ) ) {
+			$result = $async_reversal->check_pending_reversals( $order );
+			if ( is_wp_error( $result ) ) {
+				$context['error'] = $result->get_error_message();
+				Swedbank_Pay()->logger()->error( '[SCHEDULER]: Failed to check pending reversals.', $context );
+			}
+		}
+
 		// The callback names the transaction it is about. `paid` keeps reporting the
 		// authorization, which is absent from the transactions list after a capture.
 		Swedbank_Pay()->logger()->info( "[SCHEDULER]: Attempting to finalize payment for order #{$context['order_number']} with payment number #{$context['payment_number']}.", $context );
@@ -121,6 +132,13 @@ class Swedbank_Pay_Scheduler {
 			return false;
 		}
 
+		/**
+		 * Fires after a queued Swedbank Pay callback has been processed and the payment has been finalized for the order.
+		 *
+		 * @param \WC_Order                               $order        The order the callback was for.
+		 * @param \Swedbank_Pay_Payment_Gateway_Checkout $gateway      The payment gateway of the order.
+		 * @param string                                 $webhook_data The callback data from Swedbank Pay, in JSON format.
+		 */
 		do_action( 'swedbank_pay_scheduler_run_after', $order, $gateway, $webhook_data );
 
 		Swedbank_Pay()->logger()->info( "[SCHEDULER]: Successfully processed payment for order #{$order->get_order_number()} with payment number #{$context['payment_number']}.", $context );
