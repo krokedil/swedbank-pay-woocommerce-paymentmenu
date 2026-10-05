@@ -190,11 +190,7 @@ class Swedbank_Pay_Payment_Actions {
 			return true;
 		}
 
-		$result = $this->refund_payment_amount( $order, $amount );
-		if ( is_wp_error( $result ) ) {
-			return $result;
-		}
-
+		// Recorded first, so WooCommerce never misses a refund that Swedbank Pay has made.
 		$refund = wc_create_refund(
 			array(
 				'order_id'       => $order->get_id(),
@@ -213,6 +209,13 @@ class Swedbank_Pay_Payment_Actions {
 			);
 
 			return $refund;
+		}
+
+		$result = $this->refund_payment_amount( $order, $amount );
+		if ( is_wp_error( $result ) ) {
+			$refund->delete( true );
+
+			return $result;
 		}
 
 		return true;
