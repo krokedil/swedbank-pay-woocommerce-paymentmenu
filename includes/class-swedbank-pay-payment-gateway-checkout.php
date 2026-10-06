@@ -708,28 +708,22 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 			InlineEmbedded::unset_embedded_session_data();
 		}
 
-		$payment_order_id = $order->get_meta( '_payex_paymentorder_id' );
-		if ( $payment_order_id ) {
-			$order->update_meta_data( '_payex_finalized', 1 );
-			$order->save_meta_data();
+		// Only a real Authorization, Sale or Verification completes the order. Reaching this page proves nothing.
+		$result = $this->api->finalize_payment( $order, null );
+		$order  = wc_get_order( $order_id ); // The callback may have finalized it in parallel.
+		if ( is_wp_error( $result ) || ! $order->is_paid() ) {
+			$context['error'] = is_wp_error( $result ) ? $result->get_error_message() : 'The order is not paid.';
+			Swedbank_Pay()->logger()->info( "[THANK YOU]: No paid transaction for order #{$context['order_number']}, leaving it to the callback.", $context );
+			return;
 		}
+
+		$order->update_meta_data( '_payex_finalized', 1 );
+		$order->save_meta_data();
 
 		// WC will always capture an order that doesn't need processing. Therefore, we only have to set it is as completed if it needs it.
 		if ( wc_string_to_bool( $this->autocomplete ) ) {
-			$this->api->finalize_payment( $order, null );
 			$order->update_status( 'completed', __( 'Order automatically captured after payment.', 'swedbank-pay-payment-menu' ) );
 			$order->save();
-
-		} else {
-			LogUtility::$title = "[THANK YOU]: Fetch payment info for finalizing order #{$order->get_order_number()}";
-			$response          = $gateway->api->request( 'GET', "$payment_order_id/paid" );
-			if ( ! is_wp_error( $response ) ) {
-				$order->payment_complete( $response['paid']['number'] );
-				$order->add_order_note( __( 'Payment completed successfully.', 'swedbank-pay-payment-menu' ) );
-			} else {
-				$order->payment_complete();
-				$order->add_order_note( __( 'Payment completed successfully. Transaction number will soon be updated through callback.', 'swedbank-pay-payment-menu' ) );
-			}
 		}
 	}
 
