@@ -2,6 +2,7 @@
 namespace Krokedil\Swedbank\Pay\CheckoutFlow;
 
 use Krokedil\Swedbank\Pay\Utility\ErrorUtility;
+use KrokedilSwedbankPayDeps\SwedbankPay\Api\Service\Data\ResponseInterface;
 use SwedbankPay\Checkout\WooCommerce\Swedbank_Pay_Subscription;
 use WC_Order;
 
@@ -39,17 +40,13 @@ class Redirect extends CheckoutFlow {
 			);
 		}
 
-		$redirect_url  = $result->getOperationByRel( 'redirect-checkout', 'href' );
 		$payment_order = $result->getResponseResource()->getPaymentOrder();
 
 		// Save payment ID.
 		$order->update_meta_data( '_payex_paymentorder_id', $payment_order->getId() );
 		$order->save_meta_data();
 
-		return array(
-			'result'   => 'success',
-			'redirect' => $redirect_url,
-		);
+		return $this->get_process_result( $order, $result );
 	}
 
 	/**
@@ -81,6 +78,18 @@ class Redirect extends CheckoutFlow {
 		$order->update_meta_data( '_payex_paymentorder_id', $payment_order->getId() );
 		$order->save_meta_data();
 
+		return $this->get_process_result( $order, $result );
+	}
+
+	/**
+	 * Get the result to return from process_payment once the payment order is created.
+	 *
+	 * @param \WC_Order         $order The WooCommerce order.
+	 * @param ResponseInterface $result The response from initiating the payment order.
+	 *
+	 * @return array{redirect: array|bool|string, result: string}
+	 */
+	protected function get_process_result( $order, $result ) {
 		return array(
 			'result'   => 'success',
 			'redirect' => $result->getOperationByRel( 'redirect-checkout', 'href' ),
