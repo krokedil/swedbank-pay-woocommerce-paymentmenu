@@ -708,6 +708,13 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 			InlineEmbedded::unset_embedded_session_data();
 		}
 
+		// An unpaid order is checked again on every visit, so limit how often a reload can call Swedbank Pay.
+		$throttle_key = "swedbank_pay_thankyou_check_{$order_id}";
+		if ( get_transient( $throttle_key ) ) {
+			return;
+		}
+		set_transient( $throttle_key, 1, 30 );
+
 		// Only a real Authorization, Sale or Verification completes the order. Reaching this page proves nothing.
 		$result = $this->api->finalize_payment( $order, null );
 		$order  = wc_get_order( $order_id ); // The callback may have finalized it in parallel.
