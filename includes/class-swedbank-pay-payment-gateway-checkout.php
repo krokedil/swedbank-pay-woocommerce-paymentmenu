@@ -721,8 +721,8 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 			try {
 				// Only a real Authorization, Sale or Verification completes the order. Reaching this page proves nothing.
 				$result  = $this->api->finalize_payment( $order, null );
-				$order   = wc_get_order( $order_id ); // The callback may have finalized it in parallel.
-				$is_paid = ! is_wp_error( $result ) && $order && $order->is_paid();
+				$order   = wc_get_order( $order_id ); // The callback may have finalized it in parallel, even if this call failed.
+				$is_paid = $order && $order->is_paid();
 				if ( ! $is_paid ) {
 					set_transient( $cooldown_key, 1, 30 );
 				}
