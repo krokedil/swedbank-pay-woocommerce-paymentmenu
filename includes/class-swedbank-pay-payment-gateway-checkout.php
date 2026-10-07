@@ -511,6 +511,9 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 
 		// Extend with settings with logging option.
 		$this->form_fields = Swedbank_Pay()->logger()->add_settings_fields( $this->form_fields );
+
+		// Detailed logging is not supported by this plugin, so hide the setting krokedil/support adds.
+		unset( $this->form_fields['extended_logging'] );
 	}
 
 	/**
