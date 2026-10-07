@@ -218,7 +218,7 @@ class Swedbank_Pay_Payment_Menu extends Swedbank_Pay_Plugin {
 		include_once __DIR__ . '/includes/class-swedbank-pay-payment-gateway-checkout.php';
 
 		$plugin_settings = get_option( 'woocommerce_payex_checkout_settings', array() );
-		$this->logger    = new Logger( 'swedbank_pay', wc_string_to_bool( $plugin_settings['logger'] ?? true ) );
+		$this->logger    = new Logger( 'swedbank_pay', wc_string_to_bool( $plugin_settings['logging'] ?? true ) );
 
 		$system_report_options  = array(
 			array(
