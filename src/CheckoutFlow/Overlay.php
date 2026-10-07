@@ -41,8 +41,9 @@ class Overlay extends Redirect {
 			'swedbank-pay-overlay-checkout',
 			'swedbank_pay_overlay_params',
 			array(
-				'culture'     => $this->gateway->culture,
-				'close_label' => __( 'Close', 'swedbank-pay-payment-menu' ),
+				'culture'      => $this->gateway->culture,
+				'close_label'  => __( 'Close', 'swedbank-pay-payment-menu' ),
+				'dialog_label' => __( 'Swedbank Pay payment', 'swedbank-pay-payment-menu' ),
 			)
 		);
 		wp_enqueue_script( 'swedbank-pay-overlay-checkout' );

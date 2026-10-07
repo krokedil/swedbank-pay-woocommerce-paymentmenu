@@ -4,6 +4,8 @@ jQuery(function ($) {
         checkout: null,
         redirectUrl: null,
         onPaidRedirectUrl: null,
+        script: null,
+        previousFocus: null,
 
         /**
          * Initialize the overlay checkout script.
@@ -45,28 +47,91 @@ jQuery(function ($) {
          * @returns {void}
          */
         openOverlay: function (scriptUrl) {
+            sbo.previousFocus = document.activeElement;
+
             const $closeButton = $('<button type="button" class="swedbank-pay-overlay-close"></button>')
                 .attr('aria-label', sbo.params.close_label)
                 .html('&times;')
                 .on('click', sbo.closeOverlay);
 
+            // Sentinels wrap Tab focus, since keys pressed in the payment menu iframe never reach this page.
+            const $startSentinel = $('<span tabindex="0"></span>').on('focus', sbo.focusLast);
+            const $endSentinel = $('<span tabindex="0"></span>').on('focus', sbo.focusFirst);
+
             $('<div id="swedbank-pay-overlay" role="dialog" aria-modal="true"></div>')
+                .attr('aria-label', sbo.params.dialog_label)
+                .on('keydown', sbo.onKeydown)
                 .append(
+                    $startSentinel,
                     $('<div class="swedbank-pay-overlay-content"></div>')
                         .append($closeButton)
-                        .append('<div id="swedbank-pay-overlay-container"></div>')
+                        .append('<div id="swedbank-pay-overlay-container"></div>'),
+                    $endSentinel
                 )
                 .appendTo('body');
 
-            // Each payment order has its own script.
-            $('#swedbank-pay-overlay-script').remove();
+            // Deferred, as WooCommerce resets the focus when it sets the redirect hash.
+            setTimeout(sbo.focusFirst, 0);
 
-            const script = document.createElement('script');
-            script.id = 'swedbank-pay-overlay-script';
-            script.src = scriptUrl;
-            script.onload = sbo.initCheckout;
-            script.onerror = sbo.fallbackToRedirect;
-            document.body.appendChild(script);
+            // Each payment order has its own script.
+            sbo.removeScript();
+
+            sbo.script = document.createElement('script');
+            sbo.script.id = 'swedbank-pay-overlay-script';
+            sbo.script.src = scriptUrl;
+            sbo.script.onload = sbo.initCheckout;
+            sbo.script.onerror = sbo.fallbackToRedirect;
+            document.body.appendChild(sbo.script);
+        },
+
+        /**
+         * Detach and remove the payment menu script so a pending load does nothing.
+         *
+         * @returns {void}
+         */
+        removeScript: function () {
+            if (sbo.script !== null) {
+                sbo.script.onload = null;
+                sbo.script.onerror = null;
+                sbo.script.remove();
+                sbo.script = null;
+            }
+        },
+
+        /**
+         * Close the overlay on Escape.
+         *
+         * @param {KeyboardEvent} e The keydown event.
+         * @returns {void}
+         */
+        onKeydown: function (e) {
+            if (e.key === 'Escape') {
+                sbo.closeOverlay();
+            }
+        },
+
+        /**
+         * Move focus to the close button.
+         *
+         * @returns {void}
+         */
+        focusFirst: function () {
+            $('#swedbank-pay-overlay .swedbank-pay-overlay-close').trigger('focus');
+        },
+
+        /**
+         * Move focus to the payment menu, or the close button while it is loading.
+         *
+         * @returns {void}
+         */
+        focusLast: function () {
+            const $iframe = $('#swedbank-pay-overlay-container iframe');
+
+            if ($iframe.length) {
+                $iframe.trigger('focus');
+            } else {
+                sbo.focusFirst();
+            }
         },
 
         /**
@@ -75,6 +140,10 @@ jQuery(function ($) {
          * @returns {void}
          */
         initCheckout: function () {
+            if (!$('#swedbank-pay-overlay').length) {
+                return;
+            }
+
             sbo.checkout = payex.hostedView.checkout({
                 container: {
                     checkout: 'swedbank-pay-overlay-container'
@@ -103,6 +172,8 @@ jQuery(function ($) {
          * @returns {void}
          */
         closeOverlay: function () {
+            sbo.removeScript();
+
             if (sbo.checkout !== null) {
                 sbo.checkout.close();
                 sbo.checkout = null;
@@ -110,6 +181,11 @@ jQuery(function ($) {
 
             $('#swedbank-pay-overlay').remove();
             $('form.checkout').removeClass('processing').unblock();
+
+            if (sbo.previousFocus) {
+                sbo.previousFocus.focus();
+                sbo.previousFocus = null;
+            }
         },
 
         /**
@@ -118,6 +194,11 @@ jQuery(function ($) {
          * @returns {void}
          */
         fallbackToRedirect: function () {
+            // The customer closed the overlay before the payment menu failed.
+            if (!$('#swedbank-pay-overlay').length) {
+                return;
+            }
+
             window.location.href = sbo.redirectUrl;
         },
     };
