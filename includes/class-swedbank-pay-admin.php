@@ -152,20 +152,20 @@ class Swedbank_Pay_Admin {
 		// Fetch payment info.
 		LogUtility::$title = "[METABOX]: Fetch payment info for order #{$order->get_order_number()}";
 		$result            = $gateway->api->request( 'GET', $payment_order_id . '/paid' );
-		if ( is_wp_error( Swedbank_Pay()->system_report()->request( $result ) ) ) {
-			return;
+		if ( ! is_wp_error( Swedbank_Pay()->system_report()->request( $result ) ) ) {
+			wc_get_template(
+				'admin/payment-actions.php',
+				array(
+					'gateway' => $gateway,
+					'order'   => $order,
+					'info'    => $result,
+				),
+				'',
+				__DIR__ . '/../templates/'
+			);
 		}
 
-		wc_get_template(
-			'admin/payment-actions.php',
-			array(
-				'gateway' => $gateway,
-				'order'   => $order,
-				'info'    => $result,
-			),
-			'',
-			__DIR__ . '/../templates/'
-		);
+		Swedbank_Pay()->order_support()->add_export_order_button( $order );
 	}
 
 	/**

@@ -24,6 +24,7 @@ use Krokedil\Swedbank\Pay\Gateways\SplitInstrumentGateway;
 use SwedbankPay\Checkout\WooCommerce\Swedbank_Pay_Plugin;
 use Krokedil\Swedbank\Pay\OrderManagement;
 use KrokedilSwedbankPayDeps\Krokedil\Support\Logger;
+use KrokedilSwedbankPayDeps\Krokedil\Support\OrderSupport;
 use KrokedilSwedbankPayDeps\Krokedil\Support\SystemReport;
 
 
@@ -77,6 +78,13 @@ class Swedbank_Pay_Payment_Menu extends Swedbank_Pay_Plugin {
 	 * @var SystemReport
 	 */
 	private $system_report;
+
+	/**
+	 * Order support instance, for exporting orders for support.
+	 *
+	 * @var OrderSupport
+	 */
+	private $order_support;
 
 	/**
 	 * Assets instance.
@@ -163,6 +171,15 @@ class Swedbank_Pay_Payment_Menu extends Swedbank_Pay_Plugin {
 	}
 
 	/**
+	 * OrderSupport instance.
+	 *
+	 * @return OrderSupport
+	 */
+	public function order_support() {
+		return $this->order_support;
+	}
+
+	/**
 	 * Assets instance.
 	 *
 	 * @return Assets
@@ -235,6 +252,7 @@ class Swedbank_Pay_Payment_Menu extends Swedbank_Pay_Plugin {
 			),
 		);
 		$this->system_report    = new SystemReport( 'payex_checkout', 'Swedbank Pay', $system_report_options );
+		$this->order_support    = new OrderSupport( 'swedbank_pay', '_payex_paymentorder_id' );
 		$this->order_management = OrderManagement::get_instance();
 		$this->async_reversal   = AsyncReversal::get_instance();
 		$this->assets           = new Assets();
