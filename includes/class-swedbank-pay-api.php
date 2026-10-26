@@ -65,6 +65,9 @@ class Swedbank_Pay_Api {
 	public const TYPE_CANCELLATION  = 'Cancellation';
 	public const TYPE_REVERSAL      = 'Reversal';
 
+	// Payment order statuses that can no longer be paid.
+	public const PAYMENT_ORDER_FINAL_STATUSES = array( 'Aborted', 'Failed', 'Cancelled', 'Reversed' );
+
 	/**
 	 * The access token for authenticating with the Swedbank Pay API.
 	 *
@@ -773,7 +776,7 @@ class Swedbank_Pay_Api {
 			case self::TYPE_SALE:
 				// WooCommerce lets payment_complete() reopen a cancelled order, so check that the payment is still valid.
 				$payment_order_status = $payment_order->getStatus();
-				if ( in_array( $payment_order_status, array( 'Cancelled', 'Aborted' ), true ) ) {
+				if ( in_array( $payment_order_status, self::PAYMENT_ORDER_FINAL_STATUSES, true ) ) {
 					Swedbank_Pay()->logger()->warning( "[PROCESS TRANSACTION]: Skip {$transaction['type']} #{$transaction_id} for order #{$order->get_order_number()}. The payment order is {$payment_order_status}.", $context );
 					$order->add_order_note(
 						sprintf(
@@ -1344,6 +1347,8 @@ class Swedbank_Pay_Api {
 
 			// Record it as handled, like process_transaction() does, so its callback is skipped.
 			if ( ! empty( $transaction_id ) ) {
+				// Reload so a callback processed in parallel isn't overwritten.
+				$order->read_meta_data( true );
 				$transactions   = $order->get_meta( '_swedbank_pay_transactions' );
 				$transactions   = empty( $transactions ) ? array() : (array) $transactions;
 				$transactions[] = $transaction_id;
