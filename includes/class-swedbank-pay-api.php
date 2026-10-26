@@ -834,7 +834,7 @@ class Swedbank_Pay_Api {
 				}
 				break;
 			case self::TYPE_CANCELLATION:
-				// WooCommerce adds the status change to this note itself.
+				// WooCommerce adds a status change to this note itself, so only add the status when it won't change.
 				$this->update_order_status(
 					$order,
 					'cancelled',
@@ -844,7 +844,8 @@ class Swedbank_Pay_Api {
 						sprintf( __( 'Payment has been cancelled. Transaction: %s', 'swedbank-pay-payment-menu' ), $transaction_id ),
 						$order,
 						$transaction,
-						$source
+						$source,
+						$order->has_status( 'cancelled' ) ? $old_status : null
 					)
 				);
 
@@ -892,10 +893,15 @@ class Swedbank_Pay_Api {
 						$transaction['amount'] / 100
 					);
 
-					$order->update_status(
-						'refunded',
-						$this->get_transaction_note( $message, $order, $transaction, $source )
-					);
+					// WooCommerce drops the note when the status doesn't change, e.g. a refund started by setting Refunded.
+					if ( $order->has_status( 'refunded' ) ) {
+						$order->add_order_note( $this->get_transaction_note( $message, $order, $transaction, $source, $old_status ) );
+					} else {
+						$order->update_status(
+							'refunded',
+							$this->get_transaction_note( $message, $order, $transaction, $source )
+						);
+					}
 				} else {
 					$remaining_amount = $remaining_reversal / 100;
 
@@ -1390,6 +1396,14 @@ class Swedbank_Pay_Api {
 				? __( 'Payment has been cancelled.', 'swedbank-pay-payment-menu' )
 				// translators: 1: transaction ID.
 				: sprintf( __( 'Payment has been cancelled. Transaction: %s', 'swedbank-pay-payment-menu' ), $transaction_id );
+
+			$message = $this->get_transaction_note(
+				$message,
+				$order,
+				array(),
+				self::SOURCE_ORDER_MANAGEMENT,
+				$order->has_status( 'cancelled' ) ? $order->get_status() : null
+			);
 
 			$this->update_order_status( $order, 'cancelled', $transaction_id, $message );
 
