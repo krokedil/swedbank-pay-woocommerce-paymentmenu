@@ -677,11 +677,22 @@ class Swedbank_Pay_Api {
 		if ( 0 === count( $transactions_list ) ) {
 			Swedbank_Pay()->logger()->debug( "[FINALIZE]: Transaction list is empty for order #{$order->get_order_number()}. Run workaround/failback for transaction #{$transaction_number}", $context );
 
+			$type = $data['paid']['transactionType'] ?? '';
+
+			// A cancellation has no financial transaction, and `paid` still reports the authorization.
+			if ( (string) $transaction_number !== (string) ( $data['paid']['number'] ?? '' ) ) {
+				$payment_order = $this->get_payment_order( $payment_order_id );
+				if ( ! is_wp_error( $payment_order ) && 'Cancelled' === $payment_order->getStatus() ) {
+					Swedbank_Pay()->logger()->debug( "[FINALIZE]: Payment order is cancelled. Handle transaction #{$transaction_number} for order #{$order->get_order_number()} as a cancellation.", $context );
+					$type = self::TYPE_CANCELLATION;
+				}
+			}
+
 			$transaction = array(
 				'id'             => "{$payment_order_id}/financialtransactions/" . uniqid( 'fake' ),
 				'created'        => date( 'Y-m-d H:i:s' ), // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date
 				'updated'        => date( 'Y-m-d H:i:s' ), // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date
-				'type'           => $data['paid']['transactionType'] ?? '',
+				'type'           => $type,
 				'number'         => $transaction_number,
 				'amount'         => $data['paid']['amount'] ?? 0,
 				'vatAmount'      => 0,
@@ -760,6 +771,22 @@ class Swedbank_Pay_Api {
 			case self::TYPE_VERIFICATION: // This is always the case for free trial subscription orders.
 			case self::TYPE_AUTHORIZATION:
 			case self::TYPE_SALE:
+				// WooCommerce lets payment_complete() reopen a cancelled order, so check that the payment is still valid.
+				$payment_order_status = $payment_order->getStatus();
+				if ( in_array( $payment_order_status, array( 'Cancelled', 'Aborted' ), true ) ) {
+					Swedbank_Pay()->logger()->warning( "[PROCESS TRANSACTION]: Skip {$transaction['type']} #{$transaction_id} for order #{$order->get_order_number()}. The payment order is {$payment_order_status}.", $context );
+					$order->add_order_note(
+						sprintf(
+							// translators: 1: transaction type, 2: transaction ID, 3: payment order status.
+							__( 'Payment was not completed. %1$s %2$s was skipped because the payment is %3$s in Swedbank Pay.', 'swedbank-pay-payment-menu' ),
+							$transaction['type'],
+							$transaction_id,
+							$payment_order_status
+						)
+					);
+					break;
+				}
+
 				if ( empty( $order->get_date_paid() ) ) {
 					// List of different messages based on the transaction type.
 					$messages = array(
@@ -1314,6 +1341,14 @@ class Swedbank_Pay_Api {
 				? __( 'Payment has been cancelled.', 'swedbank-pay-payment-menu' )
 				// translators: 1: transaction ID.
 				: sprintf( __( 'Payment has been cancelled. Transaction: %s', 'swedbank-pay-payment-menu' ), $transaction_id );
+
+			// Record it as handled, like process_transaction() does, so its callback is skipped.
+			if ( ! empty( $transaction_id ) ) {
+				$transactions   = $order->get_meta( '_swedbank_pay_transactions' );
+				$transactions   = empty( $transactions ) ? array() : (array) $transactions;
+				$transactions[] = $transaction_id;
+				$order->update_meta_data( '_swedbank_pay_transactions', $transactions );
+			}
 
 			$this->update_order_status( $order, 'cancelled', $transaction_id, $message );
 
