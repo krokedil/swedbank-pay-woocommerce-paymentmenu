@@ -72,6 +72,9 @@ class Swedbank_Pay_Api {
 	public const SOURCE_ORDER_MANAGEMENT = 'order_management';
 	public const SOURCE_REVERSAL_CHECK   = 'reversal_check';
 
+	// Payment order statuses that can no longer be paid.
+	public const PAYMENT_ORDER_FINAL_STATUSES = array( 'Aborted', 'Failed', 'Cancelled', 'Reversed' );
+
 	/**
 	 * The access token for authenticating with the Swedbank Pay API.
 	 *
@@ -686,17 +689,32 @@ class Swedbank_Pay_Api {
 		if ( 0 === count( $transactions_list ) ) {
 			Swedbank_Pay()->logger()->debug( "[FINALIZE]: Transaction list is empty for order #{$order->get_order_number()}. Run workaround/failback for transaction #{$transaction_number}", $context );
 
+			$type                 = $data['paid']['transactionType'] ?? '';
+			$fallback_paid_number = $data['paid']['number'] ?? '';
+
+			// A cancellation has no financial transaction, and `paid` still reports the authorization.
+			if ( (string) $transaction_number !== (string) ( $data['paid']['number'] ?? '' ) ) {
+				$payment_order = $this->get_payment_order( $payment_order_id );
+				if ( ! is_wp_error( $payment_order ) && 'Cancelled' === $payment_order->getStatus() ) {
+					Swedbank_Pay()->logger()->debug( "[FINALIZE]: Payment order is cancelled. Handle transaction #{$transaction_number} for order #{$order->get_order_number()} as a cancellation.", $context );
+					$type = self::TYPE_CANCELLATION;
+
+					// The type was not read from `paid`, so don't say so in the order note.
+					$fallback_paid_number = '';
+				}
+			}
+
 			$transaction = array(
 				'id'                   => "{$payment_order_id}/financialtransactions/" . uniqid( 'fake' ),
 				'created'              => date( 'Y-m-d H:i:s' ), // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date
 				'updated'              => date( 'Y-m-d H:i:s' ), // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date
-				'type'                 => $data['paid']['transactionType'] ?? '',
+				'type'                 => $type,
 				'number'               => $transaction_number,
 				'amount'               => $data['paid']['amount'] ?? 0,
 				'vatAmount'            => 0,
 				'description'          => $data['paid']['id'],
 				'payeeReference'       => $data['paid']['payeeReference'] ?? '',
-				'fallback_paid_number' => $data['paid']['number'] ?? '',
+				'fallback_paid_number' => $fallback_paid_number,
 			);
 
 			return $this->process_transaction( $order, $transaction, $source );
@@ -773,6 +791,21 @@ class Swedbank_Pay_Api {
 			case self::TYPE_VERIFICATION: // This is always the case for free trial subscription orders.
 			case self::TYPE_AUTHORIZATION:
 			case self::TYPE_SALE:
+				// WooCommerce lets payment_complete() reopen a cancelled order, so check that the payment is still valid.
+				$payment_order_status = $payment_order->getStatus();
+				if ( in_array( $payment_order_status, self::PAYMENT_ORDER_FINAL_STATUSES, true ) ) {
+					Swedbank_Pay()->logger()->warning( "[PROCESS TRANSACTION]: Skip {$transaction['type']} #{$transaction_id} for order #{$order->get_order_number()}. The payment order is {$payment_order_status}.", $context );
+					$message = sprintf(
+						// translators: 1: transaction type, 2: transaction ID, 3: payment order status.
+						__( 'Payment was not completed. %1$s %2$s was skipped because the payment is %3$s in Swedbank Pay.', 'swedbank-pay-payment-menu' ),
+						$transaction['type'],
+						$transaction_id,
+						$payment_order_status
+					);
+					$order->add_order_note( $this->get_transaction_note( $message, $order, $transaction, $source, $old_status ) );
+					break;
+				}
+
 				// List of different messages based on the transaction type.
 				$messages = array(
 					// translators: 1: transaction ID.
@@ -1404,6 +1437,16 @@ class Swedbank_Pay_Api {
 				self::SOURCE_ORDER_MANAGEMENT,
 				$order->has_status( 'cancelled' ) ? $order->get_status() : null
 			);
+
+			// Record it as handled, like process_transaction() does, so its callback is skipped.
+			if ( ! empty( $transaction_id ) ) {
+				// Reload so a callback processed in parallel isn't overwritten.
+				$order->read_meta_data( true );
+				$transactions   = $order->get_meta( '_swedbank_pay_transactions' );
+				$transactions   = empty( $transactions ) ? array() : (array) $transactions;
+				$transactions[] = $transaction_id;
+				$order->update_meta_data( '_swedbank_pay_transactions', $transactions );
+			}
 
 			$this->update_order_status( $order, 'cancelled', $transaction_id, $message );
 
