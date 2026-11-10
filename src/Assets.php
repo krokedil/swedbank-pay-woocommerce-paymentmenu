@@ -17,6 +17,27 @@ class Assets {
 	public function __construct() {
 		add_action( 'init', array( $this, 'register_assets' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_checkout_assets' ) );
+	}
+
+	/**
+	 * Enqueue the styles for the payment method logos, on the pages that list payment methods.
+	 *
+	 * Only loaded when separate payment methods are enabled, since only those show a logo.
+	 *
+	 * @return void
+	 */
+	public function enqueue_checkout_assets() {
+		if ( ! ( is_checkout() || is_add_payment_method_page() ) || ! Utility\SettingsUtility::is_separate_instruments_enabled() ) {
+			return;
+		}
+
+		wp_enqueue_style(
+			'swedbank-pay-checkout-icons',
+			SWEDBANK_PAY_PLUGIN_URL . '/assets/css/checkout-icons.css',
+			array(),
+			SWEDBANK_PAY_VERSION
+		);
 	}
 
 	/**

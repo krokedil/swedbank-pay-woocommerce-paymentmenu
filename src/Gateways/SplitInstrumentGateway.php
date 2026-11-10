@@ -48,6 +48,8 @@ class SplitInstrumentGateway extends \WC_Payment_Gateway {
 		$this->title       = $this->get_option( 'title', $instrument['name'] );
 		$this->description = $this->get_option( 'description', '' );
 
+		$this->icon = InstrumentsUtility::get_icon_url( $id );
+
 		$this->supports   = $instrument['supports'] ?? array( 'products', 'refunds' );
 		$this->has_fields = false; // False for now. Once we add support for embedded version, we will need to set this to true.
 
@@ -140,6 +142,23 @@ class SplitInstrumentGateway extends \WC_Payment_Gateway {
 		 * @param SplitInstrumentGateway $gateway_instance The instance of the gateway being checked.
 		 */
 		return apply_filters( 'swedbank_pay_split_instrument_gateway_is_available', $is_available, $this->id, $this );
+	}
+
+	/**
+	 * Get the logo HTML shown next to the payment method title in the classic checkout.
+	 *
+	 * The title is shown next to the logo, so the image is decorative and gets an empty alt text.
+	 * The width and height attributes reserve the space before the image loads, to avoid layout shift.
+	 *
+	 * @return string
+	 */
+	public function get_icon() {
+		$icon = '';
+		if ( ! empty( $this->icon ) ) {
+			$icon = '<img src="' . esc_url( $this->icon ) . '" class="swedbank-pay-instrument-icon" width="38" height="24" alt="" decoding="async" />';
+		}
+
+		return apply_filters( 'woocommerce_gateway_icon', $icon, $this->id ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 	}
 
 	/**

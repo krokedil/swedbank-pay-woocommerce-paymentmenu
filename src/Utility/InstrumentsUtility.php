@@ -182,6 +182,41 @@ class InstrumentsUtility {
 	const UNREPORTED_INSTRUMENTS = array( 'BankLink' );
 
 	/**
+	 * Logo files in assets/images/instruments, keyed by instrument key.
+	 *
+	 * Each logo is an SVG with a 64x40 viewBox (1.6:1), shown at 38x24 px in the checkout.
+	 *
+	 * @var string[]
+	 */
+	const INSTRUMENT_ICONS = array(
+		'credit_card' => 'credit-card.svg',
+		'swish'       => 'swish.svg',
+	);
+
+	/**
+	 * Get the URL of the logo shown next to an instrument in the checkout.
+	 *
+	 * @param string $instrument_key The key of the instrument, e.g. 'credit_card'.
+	 *
+	 * @return string The logo URL, or an empty string when the instrument has no logo.
+	 */
+	public static function get_icon_url( $instrument_key ) {
+		$icon_url = isset( self::INSTRUMENT_ICONS[ $instrument_key ] )
+			? SWEDBANK_PAY_PLUGIN_URL . '/assets/images/instruments/' . self::INSTRUMENT_ICONS[ $instrument_key ]
+			: '';
+
+		/**
+		 * Filters the logo URL shown next to a separate payment method in the checkout.
+		 *
+		 * Return an empty string to hide the logo. A custom logo should keep the 1.6:1 ratio (e.g. an SVG with a 64x40 viewBox).
+		 *
+		 * @param string $icon_url       The logo URL, or an empty string when the instrument has no logo.
+		 * @param string $instrument_key The key of the instrument, e.g. 'credit_card'.
+		 */
+		return (string) apply_filters( 'swedbank_pay_instrument_icon_url', $icon_url, $instrument_key );
+	}
+
+	/**
 	 * See if the given instrument is enabled in the settings or not.
 	 *
 	 * @param string $instrument_key The key of the instrument to check, e.g. 'credit_card'.

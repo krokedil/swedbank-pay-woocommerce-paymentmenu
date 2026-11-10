@@ -8,17 +8,38 @@
     // Data
     const settings = window.wc.wcSettings.getPaymentMethodData('swedbank_split_instruments', {});
     Object.keys(settings).forEach((key) => {
-        const {gateway_id, title, description, enabled} = settings[key];
+        const {gateway_id, title, description, enabled, icon} = settings[key];
         const Content = () => {
             return decodeEntities(description || '');
         };
 
         const Label = props => {
             const { PaymentMethodLabel } = props.components;
-            //const label = React.createElement(PaymentMethodLabel, { text: title, icon: icon });
-            const label = React.createElement(PaymentMethodLabel, { text: title });
+            const label = applyFilters(
+                'swedbank_pay_checkout_label',
+                React.createElement(PaymentMethodLabel, { text: title }),
+                settings[key]
+            );
 
-            return applyFilters('swedbank_pay_checkout_label', label, settings[key]);
+            if (!icon) {
+                return label;
+            }
+
+            // The title sits next to the logo, so the image is decorative (empty alt).
+            // Width and height reserve its space before it loads, to avoid layout shift.
+            return React.createElement(
+                'span',
+                { className: 'swedbank-pay-block-label' },
+                label,
+                React.createElement('img', {
+                    src: icon,
+                    className: 'swedbank-pay-instrument-icon',
+                    width: 38,
+                    height: 24,
+                    alt: '',
+                    decoding: 'async',
+                })
+            );
         };
 
         /**

@@ -102,6 +102,7 @@ class SplitInstrumentBlockSupport extends AbstractPaymentMethodType {
 				'enabled'     => wc_string_to_bool( $settings['enabled'] ?? 'yes' ) && InstrumentsUtility::is_instrument_available( $instrument['instrument'] ),
 				'title'       => $settings['title'] ?? $instrument['name'],
 				'description' => $settings['description'] ?? '',
+				'icon'        => esc_url_raw( InstrumentsUtility::get_icon_url( $id ) ),
 			);
 		}
 
