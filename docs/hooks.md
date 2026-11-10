@@ -70,7 +70,7 @@ Argument | Type | Description
 `$is_available` | `bool` | Whether the gateway is available.
 `$gateway` | `\Swedbank_Pay_Payment_Gateway_Checkout` | The gateway instance.
 
-Source: [./includes/class-swedbank-pay-payment-gateway-checkout.php](../includes/class-swedbank-pay-payment-gateway-checkout.php), [line 544](../includes/class-swedbank-pay-payment-gateway-checkout.php#L544-L550)
+Source: [./includes/class-swedbank-pay-payment-gateway-checkout.php](../includes/class-swedbank-pay-payment-gateway-checkout.php), [line 554](../includes/class-swedbank-pay-payment-gateway-checkout.php#L554-L560)
 
 
 ---
@@ -104,7 +104,7 @@ Argument | Type | Description
 `$class` | `string` | The product class. Default 'ProductGroup1'.
 `$product` | `\WC_Product` | The product of the order line.
 
-Source: [./includes/class-swedbank-pay-payment-actions.php](../includes/class-swedbank-pay-payment-actions.php), [line 308](../includes/class-swedbank-pay-payment-actions.php#L308-L320)
+Source: [./includes/class-swedbank-pay-payment-actions.php](../includes/class-swedbank-pay-payment-actions.php), [line 354](../includes/class-swedbank-pay-payment-actions.php#L354-L366)
 
 
 ---
@@ -119,7 +119,7 @@ Argument | Type | Description
 `$class` | `string` | The order line class. Default 'ProductGroup1'.
 `$order` | `\WC_Order` | The order being refunded.
 
-Source: [./includes/class-swedbank-pay-payment-actions.php](../includes/class-swedbank-pay-payment-actions.php), [line 350](../includes/class-swedbank-pay-payment-actions.php#L350-L360)
+Source: [./includes/class-swedbank-pay-payment-actions.php](../includes/class-swedbank-pay-payment-actions.php), [line 396](../includes/class-swedbank-pay-payment-actions.php#L396-L406)
 
 
 ---
@@ -134,7 +134,7 @@ Argument | Type | Description
 `$class` | `string` | The order line class. Default 'ProductGroup1'.
 `$order` | `\WC_Order` | The order being refunded.
 
-Source: [./includes/class-swedbank-pay-payment-actions.php](../includes/class-swedbank-pay-payment-actions.php), [line 367](../includes/class-swedbank-pay-payment-actions.php#L367-L377)
+Source: [./includes/class-swedbank-pay-payment-actions.php](../includes/class-swedbank-pay-payment-actions.php), [line 413](../includes/class-swedbank-pay-payment-actions.php#L413-L423)
 
 
 ---
@@ -149,7 +149,7 @@ Argument | Type | Description
 `$class` | `string` | The order line class. Default 'ProductGroup1'.
 `$order` | `\WC_Order` | The order being refunded.
 
-Source: [./includes/class-swedbank-pay-payment-actions.php](../includes/class-swedbank-pay-payment-actions.php), [line 384](../includes/class-swedbank-pay-payment-actions.php#L384-L394)
+Source: [./includes/class-swedbank-pay-payment-actions.php](../includes/class-swedbank-pay-payment-actions.php), [line 430](../includes/class-swedbank-pay-payment-actions.php#L430-L440)
 
 
 ---
@@ -164,7 +164,7 @@ Argument | Type | Description
 `$class` | `string` | The order line class. Default 'ProductGroup1'.
 `$order` | `\WC_Order` | The order being refunded.
 
-Source: [./includes/class-swedbank-pay-payment-actions.php](../includes/class-swedbank-pay-payment-actions.php), [line 401](../includes/class-swedbank-pay-payment-actions.php#L401-L411)
+Source: [./includes/class-swedbank-pay-payment-actions.php](../includes/class-swedbank-pay-payment-actions.php), [line 447](../includes/class-swedbank-pay-payment-actions.php#L447-L457)
 
 
 ---
@@ -182,6 +182,20 @@ Source: [./includes/class-swedbank-pay-intl-tel.php](../includes/class-swedbank-
 
 
 ---
+### `swedbank_pay_user_agent`
+
+*Filters the User-Agent sent with Swedbank Pay API requests.*
+
+**Arguments**
+
+Argument | Type | Description
+-------- | ---- | -----------
+`$user_agent` | `string` | The User-Agent string.
+
+Source: [./includes/class-swedbank-pay-api.php](../includes/class-swedbank-pay-api.php), [line 225](../includes/class-swedbank-pay-api.php#L225-L230)
+
+
+---
 ### `swedbank_pay_replace_base_url`
 
 *Filters whether the payex.com domain in the API base URL should be replaced with swedbankpay.com.*
@@ -192,7 +206,7 @@ Argument | Type | Description
 -------- | ---- | -----------
 `$replace` | `bool` | Whether to replace the domain. Default true.
 
-Source: [./includes/class-swedbank-pay-api.php](../includes/class-swedbank-pay-api.php), [line 220](../includes/class-swedbank-pay-api.php#L220-L225)
+Source: [./includes/class-swedbank-pay-api.php](../includes/class-swedbank-pay-api.php), [line 241](../includes/class-swedbank-pay-api.php#L241-L246)
 
 
 ---
@@ -206,13 +220,13 @@ Argument | Type | Description
 -------- | ---- | -----------
 `$client` | `\KrokedilSwedbankPayDeps\SwedbankPay\Api\Client\Client` | The API client, with the access token, payee ID, mode and base URL set.
 
-Source: [./includes/class-swedbank-pay-api.php](../includes/class-swedbank-pay-api.php), [line 231](../includes/class-swedbank-pay-api.php#L231-L236)
+Source: [./includes/class-swedbank-pay-api.php](../includes/class-swedbank-pay-api.php), [line 252](../includes/class-swedbank-pay-api.php#L252-L257)
 
 
 ---
 ### `swedbank_pay_abort_reason`
 
-*Filters the reason sent to Swedbank Pay when an embedded payment is aborted.*
+*Filters the reason sent to Swedbank Pay when a payment order is aborted.*
 
 **Arguments**
 
@@ -220,7 +234,7 @@ Argument | Type | Description
 -------- | ---- | -----------
 `$abort_reason` | `string` | The abort reason, 'CancelledBySystem' or 'CancelledByConsumer'. Default 'CancelledBySystem'.
 
-Source: [./includes/class-swedbank-pay-api.php](../includes/class-swedbank-pay-api.php), [line 462](../includes/class-swedbank-pay-api.php#L462-L467)
+Source: [./includes/class-swedbank-pay-api.php](../includes/class-swedbank-pay-api.php), [line 495](../includes/class-swedbank-pay-api.php#L495-L500)
 
 
 ---
@@ -234,7 +248,7 @@ Argument | Type | Description
 -------- | ---- | -----------
 `$payee_reference` | `string` | The generated payee reference.
 
-Source: [./includes/class-swedbank-pay-api.php](../includes/class-swedbank-pay-api.php), [line 1226](../includes/class-swedbank-pay-api.php#L1226-L1234)
+Source: [./includes/class-swedbank-pay-api.php](../includes/class-swedbank-pay-api.php), [line 1370](../includes/class-swedbank-pay-api.php#L1370-L1378)
 
 
 ---
@@ -258,7 +272,7 @@ Version | Description
 ------- | -----------
 `4.6.3` | 
 
-Source: [./includes/class-swedbank-pay-api.php](../includes/class-swedbank-pay-api.php), [line 1432](../includes/class-swedbank-pay-api.php#L1432-L1442)
+Source: [./includes/class-swedbank-pay-api.php](../includes/class-swedbank-pay-api.php), [line 1594](../includes/class-swedbank-pay-api.php#L1594-L1604)
 
 
 ---
