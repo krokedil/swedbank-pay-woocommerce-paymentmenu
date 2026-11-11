@@ -213,10 +213,21 @@ class Swedbank_Pay_Api {
 	public static function get_client() {
 		$client = new Client();
 
-		$user_agent = "{$client->getUserAgent()} swedbank-pay-payment-menu/" . SWEDBANK_PAY_VERSION;
-		if ( isset( $_SERVER['HTTP_USER_AGENT'] ) ) {
-			$user_agent .= ' ' . sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) );
-		}
+		$user_agent = sprintf(
+			'%s WordPress/%s; %s - WooCommerce: %s - Swedbank Pay: %s - Krokedil',
+			$client->getUserAgent(),
+			get_bloginfo( 'version' ),
+			get_bloginfo( 'url' ),
+			defined( 'WC_VERSION' ) ? WC_VERSION : '',
+			SWEDBANK_PAY_VERSION
+		);
+
+		/**
+		 * Filters the User-Agent sent with Swedbank Pay API requests.
+		 *
+		 * @param string $user_agent The User-Agent string.
+		 */
+		$user_agent = apply_filters( 'swedbank_pay_user_agent', $user_agent );
 
 		$settings = get_option( 'woocommerce_payex_checkout_settings' );
 		$client->setAccessToken( $settings['access_token'] ?? '' )
