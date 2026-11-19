@@ -1,54 +1,19 @@
-/* Title and icon on the first line, link underneath the title. */
+.swedbank-pay-label {
+	display: inline-flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5em;
+}
+
+.swedbank-pay-what-is {
+	font-size: 0.875em;
+}
+
 img.swedbank-pay-method-icon {
+	display: inline-block;
 	width: 38px;
 	height: 24px;
 	max-height: none;
-	margin: 0;
-	float: none;
 	object-fit: contain;
-}
-
-a.swedbank-pay-what-is {
-	display: block;
-	font-size: 0.875em;
-	line-height: 1.4;
-}
-
-/* Classic checkout. The spacer keeps column 1 for a theme's label::before radio, so the title stays in column 2. */
-#payment .wc_payment_method > label:has(> a.swedbank-pay-what-is) {
-	display: grid;
-	grid-template-columns: auto 1fr auto;
-	align-items: start;
-	column-gap: 0;
-}
-
-#payment .wc_payment_method > label:has(> a.swedbank-pay-what-is)::before,
-.swedbank-pay-label-spacer {
-	grid-column: 1;
-	grid-row: 1;
-}
-
-/* Block checkout. */
-.swedbank-pay-label {
-	display: grid;
-	grid-template-columns: 1fr auto;
-	align-items: center;
-	width: 100%;
-}
-
-#payment .wc_payment_method > label img.swedbank-pay-method-icon,
-.swedbank-pay-label img.swedbank-pay-method-icon {
-	grid-column: -2;
-	grid-row: 1;
-	margin-left: 0.5em;
-}
-
-#payment .wc_payment_method > label a.swedbank-pay-what-is {
-	grid-column: 2;
-	grid-row: 2;
-}
-
-.swedbank-pay-label a.swedbank-pay-what-is {
-	grid-column: 1;
-	grid-row: 2;
+	vertical-align: middle;
 }

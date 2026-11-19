@@ -26,7 +26,7 @@
                 ),
                 React.createElement(
                     'img',
-                    { className: 'swedbank-pay-method-icon', src: icon, alt: '', width: 38, height: 24 }
+                    { className: 'swedbank-pay-method-icon', src: icon, alt: title, width: 38, height: 24 }
                 )
             );
 
