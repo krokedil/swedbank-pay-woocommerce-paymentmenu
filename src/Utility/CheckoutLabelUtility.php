@@ -59,17 +59,15 @@ class CheckoutLabelUtility {
 	 * Get the link and icon HTML that follows the payment method title in the classic checkout.
 	 *
 	 * @param string $key The instrument key, e.g. 'credit_card', or 'payex_checkout' for the payment menu.
-	 * @param string $alt The alt text for the icon.
 	 *
 	 * @return string
 	 */
-	public static function get_label_html( $key, $alt ) {
+	public static function get_label_html( $key ) {
 		return sprintf(
-			' <a class="swedbank-pay-what-is" href="%1$s" target="_blank" rel="noopener noreferrer">%2$s</a> <img class="swedbank-pay-method-icon" src="%3$s" alt="%4$s" width="38" height="24" />',
+			' <span class="swedbank-pay-label-spacer" aria-hidden="true"></span><img class="swedbank-pay-method-icon" src="%3$s" alt="" width="38" height="24" /><a class="swedbank-pay-what-is" href="%1$s" target="_blank" rel="noopener noreferrer">%2$s</a>',
 			esc_url( self::get_link_url() ),
 			esc_html( self::get_link_text() ),
-			esc_url( self::get_icon_url( $key ) ),
-			esc_attr( $alt )
+			esc_url( self::get_icon_url( $key ) )
 		);
 	}
 }

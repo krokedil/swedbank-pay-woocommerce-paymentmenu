@@ -593,7 +593,7 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 	 * @return string
 	 */
 	public function get_icon() {
-		return apply_filters( 'woocommerce_gateway_icon', CheckoutLabelUtility::get_label_html( $this->id, $this->get_title() ), $this->id ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
+		return apply_filters( 'woocommerce_gateway_icon', CheckoutLabelUtility::get_label_html( $this->id ), $this->id ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 	}
 
 	/**
