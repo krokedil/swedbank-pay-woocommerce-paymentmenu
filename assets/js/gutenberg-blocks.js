@@ -18,15 +18,15 @@
         const label = React.createElement(
             'span',
             { className: 'swedbank-pay-label' },
-            React.createElement( PaymentMethodLabel, { text: title } ),
+            React.createElement( PaymentMethodLabel, { text: title } ), ' ',
+            React.createElement(
+                'img',
+                { className: 'swedbank-pay-method-icon', src: SwedbankPay_Blocks_Integration.logo_src, alt: '', width: 38, height: 24 }
+            ),
             React.createElement(
                 'a',
                 { className: 'swedbank-pay-what-is', href: SwedbankPay_Blocks_Integration.what_is_url, target: '_blank', rel: 'noopener noreferrer' },
                 SwedbankPay_Blocks_Integration.what_is_text
-            ),
-            React.createElement(
-                'img',
-                { className: 'swedbank-pay-method-icon', src: SwedbankPay_Blocks_Integration.logo_src, alt: '', width: 38, height: 24 }
             )
         );
 

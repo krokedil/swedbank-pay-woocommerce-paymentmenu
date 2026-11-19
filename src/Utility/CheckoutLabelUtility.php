@@ -64,7 +64,7 @@ class CheckoutLabelUtility {
 	 */
 	public static function get_label_html( $key ) {
 		return sprintf(
-			' <span class="swedbank-pay-label-spacer" aria-hidden="true"></span><img class="swedbank-pay-method-icon" src="%3$s" alt="" width="38" height="24" /><a class="swedbank-pay-what-is" href="%1$s" target="_blank" rel="noopener noreferrer">%2$s</a>',
+			' <img class="swedbank-pay-method-icon" src="%3$s" alt="" width="38" height="24" /><a class="swedbank-pay-what-is" href="%1$s" target="_blank" rel="noopener noreferrer">%2$s</a>',
 			esc_url( self::get_link_url() ),
 			esc_html( self::get_link_text() ),
 			esc_url( self::get_icon_url( $key ) )
