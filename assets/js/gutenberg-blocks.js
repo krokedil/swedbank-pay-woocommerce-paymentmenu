@@ -14,14 +14,21 @@
     };
 
     const Label = props => {
-        const icon = React.createElement(
-            'img',
-            { alt: title, title: title, className: 'swedbank-pay-payments-logo', src: SwedbankPay_Blocks_Integration.logo_src}
-        );
-
         const { PaymentMethodLabel } = props.components;
-        //const label = React.createElement(PaymentMethodLabel, { text: title, icon: icon });
-        const label = React.createElement(PaymentMethodLabel, { text: title });
+        const label = React.createElement(
+            'span',
+            { className: 'swedbank-pay-label' },
+            React.createElement( PaymentMethodLabel, { text: title } ), ' ',
+            React.createElement(
+                'img',
+                { className: 'swedbank-pay-method-icon', src: SwedbankPay_Blocks_Integration.logo_src, alt: '', width: 38, height: 24 }
+            ),
+            React.createElement(
+                'a',
+                { className: 'swedbank-pay-what-is', href: SwedbankPay_Blocks_Integration.what_is_url, target: '_blank', rel: 'noopener noreferrer' },
+                SwedbankPay_Blocks_Integration.what_is_text
+            )
+        );
 
         return applyFilters( 'swedbank_pay_checkout_label', label, settings );
     };

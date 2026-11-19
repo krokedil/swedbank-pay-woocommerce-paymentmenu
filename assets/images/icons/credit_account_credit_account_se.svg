@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" lang="en-us" role="img" aria-labelledby="title">
+    <title id="title">Paywerk BNPL logo</title>
+    <g id="icon-paylater-solid" stroke="none" fill="none">
+        <rect id="Rectangle" fill="#EE7022" fill-rule="evenodd" x="2" y="5" width="20" height="14" rx="2"></rect>
+        <rect id="Rectangle-2" fill="#351400" fill-rule="evenodd" x="2" y="8" width="20" height="3"></rect>
+        <line x1="4.5" y1="15.5" x2="7.5" y2="15.5" id="Line" stroke="#FFFFFF" stroke-width="1"></line>
+        <line x1="8.5" y1="15.5" x2="12.4921256" y2="15.5001" id="Line-Copy" stroke="#FFFFFF" stroke-width="1"></line>
+        <g id="Group" stroke-width="1" fill-rule="evenodd" transform="translate(12, 8)">
+            <path d="M0,6 C0,8.14359346 1.1435935,10.1243556 3,11.1961524 C4.85640645,12.2679492 7.14359355,12.2679492 9,11.1961524 C10.8564065,10.1243556 12,8.14359346 12,6 C12,2.68629143 9.31370845,0 6,0 C2.68629155,0 0,2.68629143 0,6" id="Path" fill="#DADFE6"></path>
+            <polyline id="Path" stroke="#000000" points="8.69223993 9.05753793 6.46071304 6.52322513 6.0001875 6 6.0001875 2.3267386"></polyline>
+        </g>
+    </g>
+</svg>
