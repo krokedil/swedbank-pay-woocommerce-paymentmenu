@@ -156,7 +156,7 @@ class SplitInstrumentGateway extends \WC_Payment_Gateway {
 	 * @return string
 	 */
 	public function get_icon() {
-		return apply_filters( 'woocommerce_gateway_icon', CheckoutLabelUtility::get_label_html( $this->instrument_key, $this->get_title() ), $this->id ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
+		return apply_filters( 'woocommerce_gateway_icon', CheckoutLabelUtility::get_label_html( $this->instrument_key ), $this->id ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 	}
 
 	/**
