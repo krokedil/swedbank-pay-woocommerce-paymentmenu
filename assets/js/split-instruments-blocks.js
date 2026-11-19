@@ -8,15 +8,27 @@
     // Data
     const settings = window.wc.wcSettings.getPaymentMethodData('swedbank_split_instruments', {});
     Object.keys(settings).forEach((key) => {
-        const {gateway_id, title, description, enabled} = settings[key];
+        const {gateway_id, title, description, enabled, icon} = settings[key];
         const Content = () => {
             return decodeEntities(description || '');
         };
 
         const Label = props => {
             const { PaymentMethodLabel } = props.components;
-            //const label = React.createElement(PaymentMethodLabel, { text: title, icon: icon });
-            const label = React.createElement(PaymentMethodLabel, { text: title });
+            const label = React.createElement(
+                'span',
+                { className: 'swedbank-pay-label' },
+                React.createElement(PaymentMethodLabel, { text: title }),
+                React.createElement(
+                    'a',
+                    { className: 'swedbank-pay-what-is', href: SplitInstrumentBlockSupport.what_is_url, target: '_blank', rel: 'noopener noreferrer' },
+                    SplitInstrumentBlockSupport.what_is_text
+                ),
+                React.createElement(
+                    'img',
+                    { className: 'swedbank-pay-method-icon', src: icon, alt: title, width: 38, height: 24 }
+                )
+            );
 
             return applyFilters('swedbank_pay_checkout_label', label, settings[key]);
         };

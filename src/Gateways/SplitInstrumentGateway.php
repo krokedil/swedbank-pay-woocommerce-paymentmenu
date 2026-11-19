@@ -2,7 +2,7 @@
 namespace Krokedil\Swedbank\Pay\Gateways;
 
 use Krokedil\Swedbank\Pay\CheckoutFlow\CheckoutFlow;
-use Krokedil\Swedbank\Pay\Utility\InstrumentsUtility;
+use Krokedil\Swedbank\Pay\Utility\{CheckoutLabelUtility, InstrumentsUtility};
 
 defined( 'ABSPATH' ) || exit;
 
@@ -20,6 +20,13 @@ class SplitInstrumentGateway extends \WC_Payment_Gateway {
 	protected string $instrument_id;
 
 	/**
+	 * The key of the instrument, e.g. 'credit_card'.
+	 *
+	 * @var string
+	 */
+	protected string $instrument_key;
+
+	/**
 	 * Class constructor.
 	 *
 	 * @param string $id The ID of the gateway, e.g. 'credit_card'.
@@ -34,8 +41,9 @@ class SplitInstrumentGateway extends \WC_Payment_Gateway {
 			return;
 		}
 
-		$this->id            = "swedbank_pay_$id";
-		$this->instrument_id = $instrument['instrument'];
+		$this->id             = "swedbank_pay_$id";
+		$this->instrument_id  = $instrument['instrument'];
+		$this->instrument_key = $id;
 		// translators: %s the name of the payment method.
 		$this->method_title = sprintf( __( 'Swedbank Pay - %s', 'swedbank-pay-payment-menu' ), $instrument['name'] );
 		// translators: %s the description of the payment method.
@@ -140,6 +148,15 @@ class SplitInstrumentGateway extends \WC_Payment_Gateway {
 		 * @param SplitInstrumentGateway $gateway_instance The instance of the gateway being checked.
 		 */
 		return apply_filters( 'swedbank_pay_split_instrument_gateway_is_available', $is_available, $this->id, $this );
+	}
+
+	/**
+	 * Return the "What is Swedbank Pay?" link and the payment method icon shown after the title.
+	 *
+	 * @return string
+	 */
+	public function get_icon() {
+		return apply_filters( 'woocommerce_gateway_icon', CheckoutLabelUtility::get_label_html( $this->instrument_key, $this->get_title() ), $this->id ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 	}
 
 	/**

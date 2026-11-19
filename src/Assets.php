@@ -17,6 +17,7 @@ class Assets {
 	public function __construct() {
 		add_action( 'init', array( $this, 'register_assets' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_checkout_assets' ) );
 	}
 
 	/**
@@ -35,6 +36,24 @@ class Assets {
 			SWEDBANK_PAY_VERSION,
 			true
 		);
+
+		wp_register_style(
+			'swedbank-pay-checkout',
+			SWEDBANK_PAY_PLUGIN_URL . '/assets/css/checkout.css',
+			array(),
+			SWEDBANK_PAY_VERSION
+		);
+	}
+
+	/**
+	 * Enqueue the checkout styles for the payment method label.
+	 *
+	 * @return void
+	 */
+	public function enqueue_checkout_assets() {
+		if ( is_checkout() ) {
+			wp_enqueue_style( 'swedbank-pay-checkout' );
+		}
 	}
 
 	/**
