@@ -51,11 +51,9 @@ class SplitInstrumentBlockSupport extends AbstractPaymentMethodType {
 		// Localize the script
 		$translation_array = array(
 			// translators: 1: payment method title.
-			'proceed_to'   => __( 'Proceed to %s', 'swedbank-pay-payment-menu' ),
+			'proceed_to'  => __( 'Proceed to %s', 'swedbank-pay-payment-menu' ),
 			// translators: 1: payment method title.
-			'payment_via'  => __( 'Payment via %s', 'swedbank-pay-payment-menu' ),
-			'what_is_text' => CheckoutLabelUtility::get_link_text(),
-			'what_is_url'  => CheckoutLabelUtility::get_link_url(),
+			'payment_via' => __( 'Payment via %s', 'swedbank-pay-payment-menu' ),
 		);
 
 		wp_localize_script(

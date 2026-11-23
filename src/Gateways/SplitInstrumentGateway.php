@@ -151,7 +151,7 @@ class SplitInstrumentGateway extends \WC_Payment_Gateway {
 	}
 
 	/**
-	 * Return the "What is Swedbank Pay?" link and the payment method icon shown after the title.
+	 * Return the payment method icon shown after the title.
 	 *
 	 * @return string
 	 */

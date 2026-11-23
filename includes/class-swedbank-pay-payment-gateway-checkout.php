@@ -588,7 +588,7 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 	}
 
 	/**
-	 * Return the "What is Swedbank Pay?" link and the Swedbank Pay logo shown after the title.
+	 * Return the Swedbank Pay logo shown after the title.
 	 *
 	 * @return string
 	 */

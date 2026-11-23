@@ -22,11 +22,6 @@
                 React.createElement(
                     'img',
                     { className: 'swedbank-pay-method-icon', src: icon, alt: '', width: 38, height: 24 }
-                ),
-                React.createElement(
-                    'a',
-                    { className: 'swedbank-pay-what-is', href: SplitInstrumentBlockSupport.what_is_url, target: '_blank', rel: 'noopener noreferrer' },
-                    SplitInstrumentBlockSupport.what_is_text
                 )
             );
 

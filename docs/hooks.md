@@ -788,20 +788,6 @@ Source: [./src/Utility/CheckoutLabelUtility.php](../src/Utility/CheckoutLabelUti
 
 
 ---
-### `swedbank_pay_what_is_link_url`
-
-*Filters the URL of the "What is Swedbank Pay?" link in the checkout.*
-
-**Arguments**
-
-Argument | Type | Description
--------- | ---- | -----------
-`$url` | `string` | The link URL.
-
-Source: [./src/Utility/CheckoutLabelUtility.php](../src/Utility/CheckoutLabelUtility.php), [line 50](../src/Utility/CheckoutLabelUtility.php#L50-L55)
-
-
----
 ### `swedbank_pay_invalid_phone_message`
 
 *Filters the message shown to the customer when the phone number has an invalid format.*
