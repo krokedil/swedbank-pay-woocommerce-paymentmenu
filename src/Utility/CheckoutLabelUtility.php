@@ -26,7 +26,9 @@ class CheckoutLabelUtility {
 		 * @param string $url The icon URL.
 		 * @param string $key The instrument key, e.g. 'credit_card', or 'payex_checkout' for the payment menu.
 		 */
-		return apply_filters( 'swedbank_pay_payment_method_icon_url', SWEDBANK_PAY_PLUGIN_URL . "/assets/images/icons/$file", $key );
+		$url = apply_filters( 'swedbank_pay_payment_method_icon_url', SWEDBANK_PAY_PLUGIN_URL . "/assets/images/icons/$file", $key );
+
+		return esc_url_raw( $url );
 	}
 
 	/**
