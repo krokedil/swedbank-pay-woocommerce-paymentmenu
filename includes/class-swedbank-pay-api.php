@@ -828,25 +828,31 @@ class Swedbank_Pay_Api {
 				);
 				$message  = sprintf( $messages[ $transaction['type'] ], $transaction_id );
 
-				$mismatch = empty( $order->get_date_paid() ) ? $this->get_payment_mismatch( $order, $transaction, $payment_order_id ) : null;
-				if ( null !== $mismatch ) {
-					Swedbank_Pay()->logger()->warning( "[PROCESS TRANSACTION]: Skip {$transaction['type']} #{$transaction_id} for order #{$order->get_order_number()}. {$mismatch}", $context );
-					$message = sprintf(
-						// translators: 1: transaction type, 2: transaction ID, 3: reason.
-						__( 'Payment was not completed. %1$s %2$s: %3$s Verify the payment in Swedbank Pay before processing the order.', 'swedbank-pay-payment-menu' ),
-						$transaction['type'],
-						$transaction_id,
-						$mismatch
-					);
-					$order->set_status( 'on-hold' );
-					$order->add_order_note( $this->get_transaction_note( $message, $order, $transaction, $source, $old_status ) );
-					break;
-				}
+				// Serialize the ownership check and payment_complete() so two orders can't both claim the payment order.
+				$lock = empty( $order->get_date_paid() ) ? $this->lock_payment_order( $payment_order_id, $context ) : null;
+				try {
+					$mismatch = empty( $order->get_date_paid() ) ? $this->get_payment_mismatch( $order, $transaction, $payment_order_id ) : null;
+					if ( null !== $mismatch ) {
+						Swedbank_Pay()->logger()->warning( "[PROCESS TRANSACTION]: Skip {$transaction['type']} #{$transaction_id} for order #{$order->get_order_number()}. {$mismatch}", $context );
+						$message = sprintf(
+							// translators: 1: transaction type, 2: transaction ID, 3: reason.
+							__( 'Payment was not completed. %1$s %2$s: %3$s Verify the payment in Swedbank Pay before processing the order.', 'swedbank-pay-payment-menu' ),
+							$transaction['type'],
+							$transaction_id,
+							$mismatch
+						);
+						$order->set_status( 'on-hold' );
+						$order->add_order_note( $this->get_transaction_note( $message, $order, $transaction, $source, $old_status ) );
+						break;
+					}
 
-				if ( empty( $order->get_date_paid() ) ) {
-					$order->payment_complete( $transaction_id );
-				} else {
-					$message .= '. ' . __( 'Not applied, the order is already paid.', 'swedbank-pay-payment-menu' );
+					if ( empty( $order->get_date_paid() ) ) {
+						$order->payment_complete( $transaction_id );
+					} else {
+						$message .= '. ' . __( 'Not applied, the order is already paid.', 'swedbank-pay-payment-menu' );
+					}
+				} finally {
+					$this->unlock_payment_order( $lock );
 				}
 
 				$order->add_order_note( $this->get_transaction_note( $message, $order, $transaction, $source, $old_status ) );
@@ -992,6 +998,44 @@ class Swedbank_Pay_Api {
 		Swedbank_Pay()->logger()->debug( "[PROCESS TRANSACTION]: Transaction #{$transaction['number']} for order #{$order->get_order_number()} has been processed.", $context );
 
 		return true;
+	}
+
+	/**
+	 * Take a database lock for a payment order.
+	 *
+	 * @param string $payment_order_id The payment order ID.
+	 * @param array  $context The log context.
+	 * @return string|null The lock name, or null if the lock was not acquired.
+	 */
+	private function lock_payment_order( $payment_order_id, array $context ) {
+		global $wpdb;
+
+		$name = 'swedbank_pay_po_' . md5( $payment_order_id );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery -- A named lock has no WordPress API.
+		if ( '1' === (string) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, %d)', $name, 10 ) ) ) {
+			return $name;
+		}
+
+		// Continue without the lock rather than leave a legitimate payment unprocessed.
+		Swedbank_Pay()->logger()->warning( "[PROCESS TRANSACTION]: Could not lock payment order {$payment_order_id}, continuing without it.", $context );
+		return null;
+	}
+
+	/**
+	 * Release a payment order lock.
+	 *
+	 * @param string|null $name The lock name from lock_payment_order().
+	 * @return void
+	 */
+	private function unlock_payment_order( $name ) {
+		global $wpdb;
+
+		if ( null === $name ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery -- A named lock has no WordPress API.
+		$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $name ) );
 	}
 
 	/**

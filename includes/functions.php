@@ -663,7 +663,7 @@ function swedbank_pay_get_other_paid_order( $payment_order_id, $order_id ) {
 			'meta_value'   => $payment_order_id, // phpcs:ignore WordPress.DB.SlowDBQuery -- We need to query by meta value.
 			'meta_compare' => '=',
 			'exclude'      => array( $order_id ),
-			'limit'        => 10,
+			'limit'        => -1,
 		)
 	);
 

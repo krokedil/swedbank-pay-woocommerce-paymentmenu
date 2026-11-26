@@ -328,14 +328,10 @@ class InlineEmbedded extends CheckoutFlow {
 			);
 		}
 
-		if ( $has_subscription ) {
-			$this->process_subscription( $order );
-		}
-
 		$payee_reference = WC()->session->get( 'swedbank_pay_payee_reference' );
 		$payment_session = $result['paymentSession'];
 
-		// A paid payment order left in the session must not be reused for another order.
+		// A paid payment order left in the session must not be reused for another order. Checked before any subscription side effects.
 		$paid_order = swedbank_pay_get_other_paid_order( $payment_session['id'] ?? '', $order->get_id() );
 		if ( $paid_order ) {
 			Swedbank_Pay()->logger()->warning(
@@ -351,6 +347,10 @@ class InlineEmbedded extends CheckoutFlow {
 			self::unset_embedded_session_data();
 			WC()->session->set( 'reload_checkout', true );
 			throw new \Exception( esc_html__( 'The payment session has expired. Please try again.', 'swedbank-pay-payment-menu' ) );
+		}
+
+		if ( $has_subscription ) {
+			$this->process_subscription( $order );
 		}
 
 		// Save payment ID and payee reference.
