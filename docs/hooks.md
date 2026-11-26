@@ -288,7 +288,7 @@ Argument | Type | Description
 `$gateway_id` | `string` | The ID of the gateway being checked, e.g. 'swedbank_pay_credit_card'.
 `$gateway_instance` | `\Krokedil\Swedbank\Pay\Gateways\SplitInstrumentGateway` | The instance of the gateway being checked.
 
-Source: [./src/Gateways/SplitInstrumentGateway.php](../src/Gateways/SplitInstrumentGateway.php), [line 135](../src/Gateways/SplitInstrumentGateway.php#L135-L142)
+Source: [./src/Gateways/SplitInstrumentGateway.php](../src/Gateways/SplitInstrumentGateway.php), [line 143](../src/Gateways/SplitInstrumentGateway.php#L143-L150)
 
 
 ---
@@ -770,6 +770,21 @@ Argument | Type | Description
 `$helper` | `\Krokedil\Swedbank\Pay\Helpers\PaymentDataHelper` | The helper building the payment data, either a Cart or an Order helper.
 
 Source: [./src/Helpers/PaymentDataHelper.php](../src/Helpers/PaymentDataHelper.php), [line 80](../src/Helpers/PaymentDataHelper.php#L80-L86)
+
+
+---
+### `swedbank_pay_payment_method_icon_url`
+
+*Filters the icon URL shown next to a Swedbank Pay payment method in the checkout.*
+
+**Arguments**
+
+Argument | Type | Description
+-------- | ---- | -----------
+`$url` | `string` | The icon URL.
+`$key` | `string` | The instrument key, e.g. 'credit_card', or 'payex_checkout' for the payment menu.
+
+Source: [./src/Utility/CheckoutLabelUtility.php](../src/Utility/CheckoutLabelUtility.php), [line 23](../src/Utility/CheckoutLabelUtility.php#L23-L29)
 
 
 ---

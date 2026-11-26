@@ -9,7 +9,7 @@ defined( 'ABSPATH' ) || exit;
 
 use SwedbankPay\Checkout\WooCommerce\{Swedbank_Pay_Api, Swedbank_Pay_Instant_Capture, Swedbank_Pay_Payment_Actions, Swedbank_Pay_Scheduler};
 use Krokedil\Swedbank\Pay\CheckoutFlow\{CheckoutFlow, InlineEmbedded};
-use Krokedil\Swedbank\Pay\Utility\{BlocksUtility, InstrumentsUtility, SettingsUtility, LogUtility};
+use Krokedil\Swedbank\Pay\Utility\{BlocksUtility, CheckoutLabelUtility, InstrumentsUtility, SettingsUtility, LogUtility};
 use KrokedilSwedbankPayDeps\SwedbankPay\Api\Service\Paymentorder\V3\Resource\Response\CallbackPayload;
 use KrokedilSwedbankPayDeps\Krokedil\SettingsPage\SettingsPage;
 use KrokedilSwedbankPayDeps\Krokedil\SettingsPage\Gateway;
@@ -585,6 +585,15 @@ class Swedbank_Pay_Payment_Gateway_Checkout extends WC_Payment_Gateway {
 		$title = __( 'Swedbank Pay Payment Menu', 'swedbank-pay-payment-menu' );
 
 		return apply_filters( 'woocommerce_gateway_title', $title, $this->id ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
+	}
+
+	/**
+	 * Return the Swedbank Pay logo shown after the title.
+	 *
+	 * @return string
+	 */
+	public function get_icon() {
+		return apply_filters( 'woocommerce_gateway_icon', CheckoutLabelUtility::get_label_html( $this->id ), $this->id ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 	}
 
 	/**

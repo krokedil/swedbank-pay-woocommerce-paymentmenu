@@ -3,6 +3,7 @@
 namespace SwedbankPay\Checkout\WooCommerce;
 
 use Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType;
+use Krokedil\Swedbank\Pay\Utility\CheckoutLabelUtility;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -68,7 +69,7 @@ class Swedbank_Pay_Blocks_Support extends AbstractPaymentMethodType {
 				__( 'Payment via %s', 'swedbank-pay-payment-menu' ),
 				$this->settings['title']
 			),
-			'logo_src'    => plugin_dir_url( __FILE__ ) . '../assets/images/checkout.svg',
+			'logo_src'    => CheckoutLabelUtility::get_icon_url( 'payex_checkout' ),
 		);
 
 		wp_localize_script(

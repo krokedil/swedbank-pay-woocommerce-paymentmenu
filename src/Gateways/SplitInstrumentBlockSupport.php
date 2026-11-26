@@ -4,7 +4,7 @@ namespace Krokedil\Swedbank\Pay\Gateways;
 
 use Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType;
 use Automattic\WooCommerce\Blocks\Payments\PaymentMethodRegistry;
-use Krokedil\Swedbank\Pay\Utility\{InstrumentsUtility, SettingsUtility};
+use Krokedil\Swedbank\Pay\Utility\{CheckoutLabelUtility, InstrumentsUtility, SettingsUtility};
 
 defined( 'ABSPATH' ) || exit;
 
@@ -102,6 +102,7 @@ class SplitInstrumentBlockSupport extends AbstractPaymentMethodType {
 				'enabled'     => wc_string_to_bool( $settings['enabled'] ?? 'yes' ) && InstrumentsUtility::is_instrument_available( $instrument['instrument'] ),
 				'title'       => $settings['title'] ?? $instrument['name'],
 				'description' => $settings['description'] ?? '',
+				'icon'        => CheckoutLabelUtility::get_icon_url( $id ),
 			);
 		}
 
