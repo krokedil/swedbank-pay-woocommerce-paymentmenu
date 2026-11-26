@@ -1072,11 +1072,14 @@ class Swedbank_Pay_Api {
 			return null;
 		}
 
+		// Plain text for both the log and the order note.
+		$format = fn( $amount ) => html_entity_decode( wp_strip_all_tags( wc_price( $amount / 100, array( 'currency' => $order->get_currency() ) ) ), ENT_QUOTES, 'UTF-8' );
+
 		return sprintf(
 			// translators: 1: paid amount, 2: order total.
 			__( 'The paid amount %1$s does not match the order total %2$s.', 'swedbank-pay-payment-menu' ),
-			wp_strip_all_tags( wc_price( $paid / 100, array( 'currency' => $order->get_currency() ) ) ),
-			wp_strip_all_tags( wc_price( $expected / 100, array( 'currency' => $order->get_currency() ) ) )
+			$format( $paid ),
+			$format( $expected )
 		);
 	}
 
