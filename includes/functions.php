@@ -642,3 +642,36 @@ function swedbank_pay_get_order_by_payee_reference( $payee_reference ) {
 
 	return null;
 }
+
+/**
+ * Get another paid order that uses the same payment order.
+ *
+ * @param string $payment_order_id The payment order ID.
+ * @param int    $order_id The ID of the order to exclude.
+ *
+ * @return WC_Order|null The paid order, or null if none was found.
+ */
+function swedbank_pay_get_other_paid_order( $payment_order_id, $order_id ) {
+	if ( empty( $payment_order_id ) ) {
+		return null;
+	}
+
+	$orders = wc_get_orders(
+		array(
+			'type'         => 'shop_order',
+			'meta_key'     => '_payex_paymentorder_id', // phpcs:ignore WordPress.DB.SlowDBQuery -- We need to query by meta key.
+			'meta_value'   => $payment_order_id, // phpcs:ignore WordPress.DB.SlowDBQuery -- We need to query by meta value.
+			'meta_compare' => '=',
+			'exclude'      => array( $order_id ),
+			'limit'        => 10,
+		)
+	);
+
+	foreach ( $orders as $order ) {
+		if ( $order->get_meta( '_payex_paymentorder_id' ) === $payment_order_id && ! empty( $order->get_date_paid() ) ) {
+			return $order;
+		}
+	}
+
+	return null;
+}

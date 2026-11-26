@@ -828,6 +828,21 @@ class Swedbank_Pay_Api {
 				);
 				$message  = sprintf( $messages[ $transaction['type'] ], $transaction_id );
 
+				$mismatch = empty( $order->get_date_paid() ) ? $this->get_payment_mismatch( $order, $transaction, $payment_order_id ) : null;
+				if ( null !== $mismatch ) {
+					Swedbank_Pay()->logger()->warning( "[PROCESS TRANSACTION]: Skip {$transaction['type']} #{$transaction_id} for order #{$order->get_order_number()}. {$mismatch}", $context );
+					$message = sprintf(
+						// translators: 1: transaction type, 2: transaction ID, 3: reason.
+						__( 'Payment was not completed. %1$s %2$s: %3$s Verify the payment in Swedbank Pay before processing the order.', 'swedbank-pay-payment-menu' ),
+						$transaction['type'],
+						$transaction_id,
+						$mismatch
+					);
+					$order->set_status( 'on-hold' );
+					$order->add_order_note( $this->get_transaction_note( $message, $order, $transaction, $source, $old_status ) );
+					break;
+				}
+
 				if ( empty( $order->get_date_paid() ) ) {
 					$order->payment_complete( $transaction_id );
 				} else {
@@ -977,6 +992,48 @@ class Swedbank_Pay_Api {
 		Swedbank_Pay()->logger()->debug( "[PROCESS TRANSACTION]: Transaction #{$transaction['number']} for order #{$order->get_order_number()} has been processed.", $context );
 
 		return true;
+	}
+
+	/**
+	 * Check that a payment transaction actually pays for the order.
+	 *
+	 * @param WC_Order $order The order.
+	 * @param array    $transaction The payment transaction.
+	 * @param string   $payment_order_id The payment order ID.
+	 * @return string|null The reason the transaction does not match, or null if it does.
+	 */
+	private function get_payment_mismatch( WC_Order $order, array $transaction, $payment_order_id ) {
+		$paid_order = swedbank_pay_get_other_paid_order( $payment_order_id, $order->get_id() );
+		if ( $paid_order ) {
+			// translators: 1: order number.
+			return sprintf( __( 'The payment already belongs to order #%s.', 'swedbank-pay-payment-menu' ), $paid_order->get_order_number() );
+		}
+
+		// A verification carries no amount.
+		if ( self::TYPE_VERIFICATION === $transaction['type'] || ! isset( $transaction['amount'] ) ) {
+			return null;
+		}
+
+		// Match the amount sent in the payment order, including the merchant's filter.
+		$total = $order->get_total();
+		if ( has_filter( 'swedbank_pay_order_amount' ) ) {
+			$helper = new Order( $order );
+			// phpcs:ignore WooCommerce.Commenting.CommentHooks.MissingHookComment -- Documented in Helpers\Order::get_payment_order().
+			$total = apply_filters( 'swedbank_pay_order_amount', $total, $helper->get_formatted_items(), $order );
+		}
+		$expected = (int) round( $total * 100 );
+		$paid     = (int) $transaction['amount'];
+
+		if ( $paid === $expected ) {
+			return null;
+		}
+
+		return sprintf(
+			// translators: 1: paid amount, 2: order total.
+			__( 'The paid amount %1$s does not match the order total %2$s.', 'swedbank-pay-payment-menu' ),
+			wp_strip_all_tags( wc_price( $paid / 100, array( 'currency' => $order->get_currency() ) ) ),
+			wp_strip_all_tags( wc_price( $expected / 100, array( 'currency' => $order->get_currency() ) ) )
+		);
 	}
 
 	/**
