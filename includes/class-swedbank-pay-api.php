@@ -799,7 +799,7 @@ class Swedbank_Pay_Api {
 
 		// Apply action.
 		switch ( $transaction['type'] ) {
-			case self::TYPE_VERIFICATION: // This is always the case for free trial subscription orders.
+			case self::TYPE_VERIFICATION: // Zero total orders, e.g. free trials. Checked in get_payment_mismatch().
 			case self::TYPE_AUTHORIZATION:
 			case self::TYPE_SALE:
 				// WooCommerce lets payment_complete() reopen a cancelled order, so check that the payment is still valid.
@@ -1053,8 +1053,19 @@ class Swedbank_Pay_Api {
 			return sprintf( __( 'The payment already belongs to order #%s.', 'swedbank-pay-payment-menu' ), $paid_order->get_order_number() );
 		}
 
-		// A verification carries no amount.
-		if ( self::TYPE_VERIFICATION === $transaction['type'] || ! isset( $transaction['amount'] ) ) {
+		$format = fn( $amount ) => html_entity_decode( wp_strip_all_tags( wc_price( $amount / 100, array( 'currency' => $order->get_currency() ) ) ), ENT_QUOTES, 'UTF-8' );
+
+		// A verification pays nothing, so it may only complete an order with nothing due. A subscription changing its payment method is not paid by it.
+		if ( self::TYPE_VERIFICATION === $transaction['type'] ) {
+			if ( swedbank_pay_is_zero( $order->get_total() ) || ( function_exists( 'wcs_is_subscription' ) && \wcs_is_subscription( $order ) ) ) {
+				return null;
+			}
+
+			// translators: 1: order total.
+			return sprintf( __( 'A verification does not pay the order total %s.', 'swedbank-pay-payment-menu' ), $format( (int) round( $order->get_total() * 100 ) ) );
+		}
+
+		if ( ! isset( $transaction['amount'] ) ) {
 			return null;
 		}
 
@@ -1071,9 +1082,6 @@ class Swedbank_Pay_Api {
 		if ( $paid === $expected ) {
 			return null;
 		}
-
-		// Plain text for both the log and the order note.
-		$format = fn( $amount ) => html_entity_decode( wp_strip_all_tags( wc_price( $amount / 100, array( 'currency' => $order->get_currency() ) ) ), ENT_QUOTES, 'UTF-8' );
 
 		return sprintf(
 			// translators: 1: paid amount, 2: order total.

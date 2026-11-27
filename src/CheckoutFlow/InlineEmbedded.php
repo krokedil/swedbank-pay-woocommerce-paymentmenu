@@ -331,14 +331,22 @@ class InlineEmbedded extends CheckoutFlow {
 		$payee_reference = WC()->session->get( 'swedbank_pay_payee_reference' );
 		$payment_session = $result['paymentSession'];
 
-		// A paid payment order left in the session must not be reused for another order. Checked before any subscription side effects.
+		// Refuse a session payment order that cannot pay this order. Checked before any subscription side effects.
+		$reason     = null;
 		$paid_order = swedbank_pay_get_other_paid_order( $payment_session['id'] ?? '', $order->get_id() );
 		if ( $paid_order ) {
+			$reason = sprintf( 'already belongs to paid order #%s', $paid_order->get_order_number() );
+		} elseif ( PaymentDataHelper::OPERATION_VERIFY === WC()->session->get( 'swedbank_pay_operation' ) && ! swedbank_pay_is_zero( $order->get_total() ) ) {
+			// The cart was changed from a zero total without the checkout being reloaded.
+			$reason = 'is a verification, but the order has an amount due';
+		}
+
+		if ( null !== $reason ) {
 			Swedbank_Pay()->logger()->warning(
 				sprintf(
-					'[PROCESS PAYMENT]: Payment order %s already belongs to paid order #%s, refusing to use it for order #%s.',
+					'[PROCESS PAYMENT]: Payment order %s %s, refusing to use it for order #%s.',
 					$payment_session['id'],
-					$paid_order->get_order_number(),
+					$reason,
 					$this->get_order_number( $order )
 				),
 				array( 'order_id' => $order->get_id() )
