@@ -328,12 +328,38 @@ class InlineEmbedded extends CheckoutFlow {
 			);
 		}
 
+		$payee_reference = WC()->session->get( 'swedbank_pay_payee_reference' );
+		$payment_session = $result['paymentSession'];
+
+		// Refuse a session payment order that cannot pay this order. Checked before any subscription side effects.
+		$reason     = null;
+		$paid_order = swedbank_pay_get_other_paid_order( $payment_session['id'] ?? '', $order->get_id() );
+		if ( $paid_order ) {
+			$reason = sprintf( 'already belongs to paid order #%s', $paid_order->get_order_number() );
+		} elseif ( PaymentDataHelper::OPERATION_VERIFY === WC()->session->get( 'swedbank_pay_operation' ) && ! swedbank_pay_is_zero( $order->get_total() ) ) {
+			// The cart was changed from a zero total without the checkout being reloaded.
+			$reason = 'is a verification, but the order has an amount due';
+		}
+
+		if ( null !== $reason ) {
+			Swedbank_Pay()->logger()->warning(
+				sprintf(
+					'[PROCESS PAYMENT]: Payment order %s %s, refusing to use it for order #%s.',
+					$payment_session['id'],
+					$reason,
+					$this->get_order_number( $order )
+				),
+				array( 'order_id' => $order->get_id() )
+			);
+
+			self::unset_embedded_session_data();
+			WC()->session->set( 'reload_checkout', true );
+			throw new \Exception( esc_html__( 'The payment session has expired. Please try again.', 'swedbank-pay-payment-menu' ) );
+		}
+
 		if ( $has_subscription ) {
 			$this->process_subscription( $order );
 		}
-
-		$payee_reference = WC()->session->get( 'swedbank_pay_payee_reference' );
-		$payment_session = $result['paymentSession'];
 
 		// Save payment ID and payee reference.
 		$order->update_meta_data( '_payex_paymentorder_id', $payment_session['id'] );
